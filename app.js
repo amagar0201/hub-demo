@@ -8,8 +8,8 @@
   }
   var AREAS = [
     { key: "money", name: "Money", icon: "$", color: "#2F5BD3", step: 2, tabs: [
-      t("finances", "Finances", "$", "#2F5BD3", ["Transactions", "History", "Radar", "Rental CF"]),
-      t("networth", "Net Worth", "↗", "#2E8B57", ["Real Estate"])] },
+      t("finances", "Finances", "$", "#2F5BD3", [["transactions", "Transactions"], ["history", "History"], ["radar", "Radar"], ["rentcf", "Rental CF"]]),
+      t("networth", "Net Worth", "↗", "#2E8B57", [["realestate", "Real Estate"]])] },
     { key: "assets", name: "Assets", icon: "⌂", color: "#F2612D", step: 3, tabs: [
       t("cars", "Cars", "◎", "#7B2FF7", ["＋ Log", "History", "Rules", "Archived"]),
       t("homes", "Homes", "⌂", "#F2612D", ["＋ Log", "History", "Archived"])] },
@@ -68,13 +68,15 @@
   // ---------- shell ----------
   function lastUrl(a) { try { var u = localStorage.getItem("demo.last." + a.key); if (u && a.tabs.some(function (x) { return x.url === u; })) return u; } catch (e) {} return a.url; }
 
-  function strip(area, tab, crumb) {
+  function strip(area, tab, crumb, sub) {
     var s = '<nav class="strip" aria-label="Where you are"><details class="jump"><summary>' +
       (area ? '<span style="color:' + area.color + '">' + area.icon + '</span> ' + (tab ? tab.name : area.name) : "⊞ " + crumb) + ' ▾</summary><div class="jumpmenu">' +
       '<div class="jrow"><a href="#/">⊞ Hub</a><a href="#/tasks">✓ Daily Tasks</a><a href="#/settings">⚙ Settings</a></div>' +
       AREAS.map(function (a) { return '<div class="jrow" style="--g:' + a.color + '"><b>' + a.icon + " " + a.name + '</b>' + a.tabs.map(function (x) {
         return '<a href="' + (a.soon ? a.url : x.url) + '" class="' + (a.soon ? "soon" : "") + (tab && tab.key === x.key ? " on" : "") + '">' + x.name + '</a>'; }).join("") + '</div>'; }).join("") +
-      '</div></details><div class="subs">' + (tab ? tab.subs.map(function (n) { return '<a href="' + tab.url + '" style="--sec:' + tab.color + '">' + n + '</a>'; }).join("") : "") + '</div></nav>';
+      '</div></details><div class="subs">' + (tab ? tab.subs.map(function (n) {
+        if (typeof n === "string") return '<a style="--sec:' + tab.color + '">' + n + '</a>';
+        return '<a href="' + tab.url + "/" + n[0] + '" class="' + (sub === n[0] ? "on" : "") + '" style="--sec:' + tab.color + '">' + n[1] + '</a>'; }).join("") : "") + '</div></nav>';
     return s;
   }
 
@@ -92,16 +94,21 @@
   }
 
   function route() {
-    var key = (location.hash.replace(/^#\/?/, "") || "").split("?")[0], area = null, tab = null, body, crumb = null;
+    var key = (location.hash.replace(/^#\/?/, "") || "").split("?")[0], area = null, tab = null, body, crumb = null, page = null;
+    var sub = key.split("/")[1] || null, tkey = key.split("/")[0];
     if (key === "") body = hub();
-    else if (TABS[key]) { tab = TABS[key]; area = tab.area; body = later(tab.name, tab.color, area.step); }
+    else if (TABS[tkey]) { tab = TABS[tkey]; area = tab.area; page = window.PAGES[key];
+      if (sub && !page) { location.hash = tab.url; return; }
+      body = page ? page.html() : later(tab.name, tab.color, area.step); }
     else if (key.indexOf("area/") === 0) { area = AREAS.filter(function (a) { return a.key === key.slice(5); })[0]; body = area ? soonArea(area) : hub(); }
     else if (OTHER[key]) { crumb = OTHER[key].name; body = later(crumb, "#6B8F71", OTHER[key].step); }
     else { location.hash = "#/"; return; }
     if (tab) try { localStorage.setItem("demo.last." + area.key, tab.url); } catch (e) {}
-    document.body.className = "sec-" + (tab ? tab.key : key || "hub");
+    document.body.className = "sec-" + (tab ? tab.key : tkey || "hub");
     var paint = function () {
-      document.querySelector(".wrap").innerHTML = (area || crumb ? strip(area, tab, crumb) : "") + body;
+      var wrap = document.querySelector(".wrap");
+      wrap.innerHTML = (area || crumb ? strip(area, tab, crumb, sub) : "") + '<div class="page"></div>';
+      mount(wrap.querySelector(".page"), body, page);
       document.querySelector("nav.tabs").innerHTML = bar(area, tab, key);
       document.title = tab ? tab.name + " · Hub Demo" : crumb ? crumb + " · Hub Demo" : "Hub Demo";
       window.scrollTo(0, 0);
@@ -111,6 +118,17 @@
       vt.ready.catch(no); vt.finished.catch(no); vt.updateCallbackDone.catch(no);
     } else paint();
     route.done = true;
+  }
+  // put a page's HTML in place, wire levels / swipes, and let the page re-draw itself (filters) keeping open cards open
+  function mount(el, html, page) {
+    var box = document.createElement("div"); box.innerHTML = html; el.replaceWith(box); box.className = "page";
+    window.UI.enhance(box);
+    if (page && page.init) page.init(box, function () {
+      var open = [].map.call(box.querySelectorAll('[data-lvkey][data-lvl="2"]'), function (x) { return x.dataset.lvkey; });
+      var y = window.scrollY; mount(box, page.html(), page);
+      open.forEach(function (k) { var x = document.querySelector('.page [data-lvkey="' + k + '"] .lvhead'); if (x) x.click(); });
+      window.scrollTo(0, y);
+    });
   }
   window.addEventListener("hashchange", route);
   document.addEventListener("click", function (e) {        // the jump menu closes after a pick; taps outside close it too
