@@ -106,7 +106,10 @@
       document.title = tab ? tab.name + " · Hub Demo" : crumb ? crumb + " · Hub Demo" : "Hub Demo";
       window.scrollTo(0, 0);
     };
-    if (document.startViewTransition && route.done) document.startViewTransition(paint); else paint();
+    if (document.startViewTransition && route.done) {       // a quick second tap aborts the first transition: harmless
+      var vt = document.startViewTransition(paint), no = function () {};
+      vt.ready.catch(no); vt.finished.catch(no); vt.updateCallbackDone.catch(no);
+    } else paint();
     route.done = true;
   }
   window.addEventListener("hashchange", route);
