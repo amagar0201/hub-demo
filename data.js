@@ -219,9 +219,78 @@ window.DEMO = (function () {
             { tenant: "S. Nguyen", start: "May 2024", end: "Apr 2027", current: true, periods: [["May 2024", "Onboard", 2150], ["May 2025", "Renewal", 2195], ["May 2026", "Renewal", 2195]] }]
   };
 
+
+  // ---------- Daily Tasks: one list, every area; hub counts come from it ----------
+  // [group, title, where, area, due text, days, amount, kind, hot, link]
+  var taskList = [
+    ["urgent", "Furnace filter", "Maple · every 3 mo", "assets", "Sep 26", -3, "", "todo", false, "#/homes"],
+    ["urgent", "Possible duplicate: Corner Bakery", "Summit ••2266 · twice on Sep 17", "money", "Sep 17", null, "$18.40", "notice", true, "#/finances/radar"],
+    ["week", "Money next 7 days", "in $4,545 · out $6,903", "money", "Oct 01", 2, "", "notice", false, "#/homes"],
+    ["week", "Rent · Cedar", "R. Alvarez · $2,350 + $60 utilities", "rentals", "Oct 02", 3, "$2,410", "todo", false, "#/rhomes"],
+    ["week", "Rent · Birch", "S. Nguyen", "rentals", "Oct 02", 3, "$2,195", "todo", false, "#/rhomes"],
+    ["week", "Iron Fitness renews", "Harbor ••5530 · monthly", "money", "Oct 03", 4, "$39.00", "notice", false, "#/finances/radar"],
+    ["week", "HOA · Cedar", "Harbor ••8124", "utilities", "Oct 05", 6, "$210.00", "todo", false, "#/hoa"],
+    ["later", "Water heater flush", "Birch", "assets", "Oct 09", 10, "", "todo", false, "#/homes"],
+    ["later", "Tire rotation", "Ioniq 5 · 4,380 mi since last", "assets", "Oct 11", 12, "", "todo", false, "#/cars"],
+    ["later", "Summit card payment", "Rewards Card ••2266", "money", "Oct 14", 15, "$1,584.44", "todo", false, "#/finances"],
+    ["later", "Clean gutters", "Maple", "assets", "Oct 15", 16, "", "todo", false, "#/homes"],
+    ["later", "Start renewal: Passport", "Jordan · expires Apr 2027", "identity", "Oct 20", 21, "", "todo", false, "#/vault"],
+    ["later", "Oil change", "Outback · ≈ 640 mi", "assets", "Oct 20", 21, "", "todo", false, "#/cars"],
+    ["later", "Sprinkler blowout", "Maple", "assets", "Oct 20", 21, "", "todo", false, "#/homes"],
+    ["later", "HVAC service", "Cedar", "assets", "Oct 28", 29, "", "todo", false, "#/homes"],
+    ["fyi", "StreamFlix price went up", "$13.99 → $15.49 · Summit ••2266", "money", "Sep 20", null, "", "notice", false, "#/finances/radar"],
+    ["fyi", "Foreign transaction fee", "Harbor ••5530", "money", "Sep 12", null, "$2.13", "notice", false, "#/finances/radar"],
+    ["fyi", "Categories tidied", "4 transactions filed like your history", "money", "Sep 28", null, "", "notice", false, "#/finances/transactions"]
+  ];
+  var planned = [["November 2026", 6], ["December 2026", 4], ["January 2027", 5], ["February 2027", 3], ["March 2027", 7], ["April 2027", 4]];
+  var tasksDone = [["Deep clean dryer vent", "assets", "done", "09-26"], ["Sep rent · Cedar", "rentals", "done", "09-02"], ["Sep rent · Birch", "rentals", "done", "09-02"], ["Big Box Membership", "money", "seen", "09-01"]];
+  tasks.urgent = taskList.filter(function (t) { return t[0] === "urgent"; }).length;
+  tasks.week = taskList.filter(function (t) { return t[0] === "week"; }).length;
+  tasks.byArea = {};
+  taskList.forEach(function (t) { if (t[0] === "urgent" || t[0] === "week") tasks.byArea[t[3]] = (tasks.byArea[t[3]] || 0) + 1; });
+
+  // ---------- Utilities: 12 months per home (Oct 2025 → Sep 2026), the year before for comparison ----------
+  var MONTHS = ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"];
+  function series(list, before) { return MONTHS.map(function (m, i) { return { m: m, cost: list[i], prev: before ? Math.round(list[i] * before[i] * 100) / 100 : null }; }); }
+  var jitter = [1.04, 0.97, 1.08, 0.95, 1.02, 0.99, 1.06, 0.93, 1.01, 0.98, 1.05, 0.96];
+  var utilityData = {
+    gas: { unit: "therms", homes: [{ key: "maple", months: series([41.20, 88.60, 146.30, 188.40, 171.10, 132.80, 96.40, 58.70, 36.20, 31.10, 48.90, 62.40], jitter), usage: [38, 81, 140, 182, 164, 126, 88, 50, 29, 24, 40, 55] }] },
+    electricity: { unit: "kWh", homes: [{ key: "maple", months: series([112.40, 118.90, 131.20, 137.60, 126.30, 114.80, 101.20, 108.60, 146.90, 211.70, 162.30, 148.15], jitter), usage: [742, 790, 880, 925, 845, 760, 668, 715, 980, 1420, 1085, 988] }] },
+    water: { unit: "kgal", homes: [{ key: "maple", months: series([78.40, 64.20, 62.10, 61.80, 61.80, 63.40, 72.60, 96.30, 118.20, 117.60, 104.90, 90.75], jitter), usage: [5.1, 3.2, 3.0, 3.0, 3.0, 3.3, 4.6, 8.2, 11.4, 11.3, 9.6, 7.8] },
+                                     { key: "birch", months: series([60.10, 52.40, 49.80, 48.90, 49.20, 50.60, 56.40, 71.30, 76.90, 74.80, 64.20, 58.20], jitter) }] },
+    hoa: { homes: [{ key: "maple", months: series([180, 180, 180, 185, 185, 185, 185, 185, 185, 185, 185, 185], [1, 1, 1, 0.973, 0.973, 0.973, 0.973, 0.973, 0.973, 0.973, 0.973, 0.973]) },
+                   { key: "cedar", months: series([205, 205, 205, 210, 210, 210, 210, 210, 210, 210, 210, 210], [1, 1, 1, 0.976, 0.976, 0.976, 0.976, 0.976, 0.976, 0.976, 0.976, 0.976]) }] }
+  };
+
+  // ---------- Identity Vault: names and dates only ----------
+  var vaultDocs = [["Passport", "Jordan", "Apr 14, 2027", 197, "renew", "Start renewal by Jul 14, 2026 (9 months before)"],
+                   ["Global Entry", "Alex", "Nov 30, 2026", 62, "soon", "Renew online up to a year before"],
+                   ["Driver's license", "Alex", "Aug 09, 2027", 314, "ok", "Renew 2 months before"],
+                   ["Passport", "Maya", "Jan 22, 2028", 480, "ok", "Under 16: 5-year passport"],
+                   ["Passport", "Alex", "Jun 03, 2031", 1708, "ok", ""],
+                   ["Passport", "Theo", "Jun 18, 2029", 993, "ok", "Under 16: 5-year passport"]];
+  var vaultFolders = [["Education & Identity", [["Alex", 12], ["Jordan", 11], ["Maya", 9], ["Theo", 7], ["In this folder", 3]]],
+                      ["Visa & Travel", [["Passports (scans)", 8], ["Global Entry", 4], ["Trips", 19]]]];
+
+  // ---------- Audit: filed returns vs the household's data ----------
+  var audit = { years: [2025, 2024, 2023, 2022, 2021], check: { 2025: 1, 2024: 0, 2023: 2, 2022: 0, 2021: 0 },
+    summary: [["Wages (W-2 box 1)", 186420, 186420], ["Federal tax withheld", 24310, 24310], ["Interest · US accounts", 1842, 1835], ["Dividends · US accounts", 2210, 2210],
+              ["Rentals, tax view (incl. depreciation)", -4120, -4120]],
+    rentals: [{ name: "Cedar", rent: 28200, lines: [["3", "Rents received", 28200], ["7", "Cleaning & maintenance", 1840], ["9", "Insurance", 1120], ["12", "Mortgage interest", 16010], ["16", "Taxes", 2560], ["17", "Utilities", 0], ["18", "Depreciation", 12910], ["19", "HOA", 2520]] },
+               { name: "Birch", rent: 26340, lines: [["3", "Rents received", 26340], ["7", "Cleaning & maintenance", 2210], ["9", "Insurance", 1040], ["12", "Mortgage interest", 13900], ["16", "Taxes", 2300], ["17", "Water & sewer", 700], ["18", "Depreciation", 12650], ["19", "HOA", 0]] }],
+    filed: [["ok", "Wages", "1040", "1a", 186420, 186420, ""], ["small", "Taxable interest", "1040", "2b", 1842, 1835, "$7 from a savings account closed in December"],
+            ["ok", "Ordinary dividends", "1040", "3b", 2210, 2210, ""], ["ok", "Rental real estate", "Sch 1", "5", -4120, -4120, ""],
+            ["check", "Charitable gifts", "Sch A", "12", 3400, 2650, "The app sees $2,650 in gifts; $750 more on the return (cash gifts, or a gift from an account the app doesn't have?)"],
+            ["ok", "Mortgage interest (home)", "Sch A", "8a", 20480, 20480, ""], ["ok", "Federal tax withheld", "1040", "25a", 24310, 24310, ""],
+            ["explained", "Refund", "1040", "35a", 1964, 1964, "Arrived Mar 12 into Northwind ••4417"]] };
+
+  // ---------- Settings ----------
+  var dailyRun = [["Bank feed", "ok"], ["Car odometer (1 call)", "ok"], ["Home values", "ok"], ["Tire swap plan", "ok"], ["Statement emails", "ok"], ["Categories check", "ok"], ["Daily Tasks", "ok"], ["Morning summary", "ok"], ["Backup", "ok"]];
+
   return { people: people, banks: banks, accounts: accounts, homes: homes, cars: cars, utilities: utilities, rentalProfit: rentalProfit,
            carx: carx, carEvents: carEvents, swap: swap, carsArchived: carsArchived, homex: homex, upcoming: upcoming, homeEvents: homeEvents,
            values: values, homesArchived: homesArchived, tenancies: tenancies,
+           taskList: taskList, planned: planned, tasksDone: tasksDone, utilityData: utilityData, vaultDocs: vaultDocs, vaultFolders: vaultFolders, audit: audit, dailyRun: dailyRun,
            tasks: tasks, renewals: renewals, totals: totals, today: today, cats: cats, tx: tx, subs: subs, bills: bills,
            alerts: alerts, rentals: rentals, trend: trend };
 })();

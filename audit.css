@@ -1,0 +1,31 @@
+
+body.sec-audit{--sec:#4F46E5}
+.ychips{display:flex;gap:6px;overflow-x:auto;margin:6px 0 8px;scrollbar-width:none}
+.ychips .chip{text-decoration:none;color:var(--text)}
+.ychips .chip.on{background:#4F46E5;color:#fff}
+.ychips .warnn{color:#B3261E;font-weight:700}.ychips .chip.on .warnn{color:#FFD7D2}
+.ychips .okn{color:#2E8B57}.ychips .chip.on .okn{color:#CFF5DD}
+.dlbar{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.dlbar .chip,.dlbar button.chip{text-decoration:none;color:var(--text);border:0;cursor:pointer;font:inherit;font-size:13px}
+.dlrow{font-size:13px;margin-top:8px;text-align:right}
+.fig summary .ln,.frow .ln{display:inline-block;min-width:22px;color:var(--muted);font-variant-numeric:tabular-nums}
+.evbar{display:inline-flex;width:64px;height:6px;border-radius:3px;overflow:hidden;background:var(--line,#ddd);vertical-align:middle;margin-right:6px}
+.evbar i{display:block;height:100%}
+.evbar .b,.evkey.b{background:#2E8B57}.evbar .l,.evkey.l{background:#C9A96E}.evbar .y,.evkey.y{background:#B3261E}
+.evkey{display:inline-block;width:10px;height:6px;border-radius:2px;vertical-align:middle}
+.evtxt{color:var(--muted);font-size:12px}
+.txlist{margin:4px 0 2px}
+.tx{display:flex;gap:6px;align-items:baseline;font-size:12.5px;padding:2px 0;border-top:1px dashed color-mix(in srgb,var(--muted) 25%,transparent)}
+.tx .d{color:var(--muted);flex:none;width:36px;font-variant-numeric:tabular-nums}
+.tx .w{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tx b{flex:none;font-variant-numeric:tabular-nums;font-weight:600}
+.tx .src{font-size:10.5px;padding:0 4px;border-radius:4px;background:color-mix(in srgb,#C9A96E 22%,transparent)}
+.fhead{padding-bottom:4px;border-bottom:1px solid color-mix(in srgb,var(--muted) 25%,transparent)}
+.frow .sti{display:inline-block;width:16px;text-align:center;font-weight:700}
+.frow.st-ok .sti{color:#2E8B57}.frow.st-small .sti{color:#8A8F98}.frow.st-explained .sti{color:#2F5BD3}.frow.st-check .sti{color:#B3261E}
+.frow.st-info,.frow.st-none{opacity:.8}
+.anote{margin-top:6px}.anote textarea{width:100%;font:inherit;font-size:13px;border-radius:8px;padding:6px;box-sizing:border-box}
+@media (prefers-color-scheme: dark){
+  .ychips .warnn{color:#F2A09A}
+  .evbar .y,.evkey.y{background:#E57368}
+}

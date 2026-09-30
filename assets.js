@@ -127,6 +127,16 @@
     if (D.rentals[hm.key]) h += '<a class="loanbox moneybox" href="#/rentcf">' + rentvcost(hm) + '<div class="small lkfoot"><span>Banks to Sep 28</span><span>Money ›</span></div></a>';
     return h + '<ul class="comingup">' + x.tasks.map(function (t) { return '<li class="' + t[3] + '"><a href="#/homes/history"><span class="hdot ' + t[4] + '"></span>' + t[0] + ' · ' + t[1] + ' <span class="cuwhen">(' + when(t[2]) + ')</span></a></li>'; }).join("") + '</ul></div>';
   }
+  // one home as a tile (Homes and Rental Homes share it, like the real app)
+  function homeTile(hm, grp) {
+      var x = D.homex[hm.key], l = x.lease, u = x.tasks.filter(function (t) { return t[3]; }).length, eq = hm.value - hm.loan - (hm.heloc || 0);
+      return '<section class="tile3 car3" data-lvkey="homes:' + hm.key + '" data-lvgroup="' + grp + '" style="--vc:' + hm.color + '"><button class="t3head lvhead" type="button"><span class="t3pic">' + hicon(hm, 58) + '</span>' +
+        '<span class="t3main"><span class="t3title">' + hm.name + '</span><span class="t3sub">' + (l ? l.tenant + " · " + cur0(hm.rent) + "/mo" : x.kind) + '</span>' +
+        '<span class="t3sub2 compact">🏦' + km(hm.loan) + ' · 📈' + km(eq) + (u ? ' · <span class="late">' + u + ' urgent</span>' : "") + '</span>' +
+        '<span class="t3sub2 compact loanln">🏦 ' + hm.rate + '% · paid P ' + km(x.mortgage.principal) + ' · I ' + km(x.mortgage.interest) + '</span>' +
+        (x.heloc ? '<span class="t3sub2 compact loanln">💳 ' + x.heloc.rate + '% · ' + km(x.heloc.avail) + ' avail</span>' : "") + '</span><span class="t3lvl lvdots">○○</span></button>' +
+        '<div class="t3body">' + homeCard(hm) + '</div></section>';
+  }
   P.homes = { html: function () {
     var urgent = []; D.homes.forEach(function (hm) { D.homex[hm.key].tasks.forEach(function (t) { if (t[3]) urgent.push([hm, t]); }); });
     urgent.sort(function (a, b) { return a[1][2] - b[1][2]; });
@@ -141,15 +151,7 @@
       D.upcoming.map(function (u) { var hm = byKey(D.homes, u[1]);
         return '<a class="uline" href="#/homes"><span class="ulicon">' + hicon(hm, 28) + '</span><span class="ultext"><b>' + u[0] + ' · ' + hm.name + ' <span class="upamt' + (u[3] ? " in" : "") + '">' + (u[3] ? "+" : "−") + cur0(u[2]) + '</span></b><span>last month the same</span></span>' +
           '<span class="ulwhen"><b>' + u[4] + '</b><span>in ' + u[5] + 'd</span></span></a>'; }).join("") + '<div class="swhint">Guessed from the last months\' payments · bank feed through Sep 28</div></div></section>';
-    D.homes.forEach(function (hm) {
-      var x = D.homex[hm.key], l = x.lease, u = x.tasks.filter(function (t) { return t[3]; }).length, eq = hm.value - hm.loan - (hm.heloc || 0);
-      h += '<section class="tile3 car3" data-lvkey="homes:' + hm.key + '" data-lvgroup="homes" style="--vc:' + hm.color + '"><button class="t3head lvhead" type="button"><span class="t3pic">' + hicon(hm, 58) + '</span>' +
-        '<span class="t3main"><span class="t3title">' + hm.name + '</span><span class="t3sub">' + (l ? l.tenant + " · " + cur0(hm.rent) + "/mo" : x.kind) + '</span>' +
-        '<span class="t3sub2 compact">🏦' + km(hm.loan) + ' · 📈' + km(eq) + (u ? ' · <span class="late">' + u + ' urgent</span>' : "") + '</span>' +
-        '<span class="t3sub2 compact loanln">🏦 ' + hm.rate + '% · paid P ' + km(x.mortgage.principal) + ' · I ' + km(x.mortgage.interest) + '</span>' +
-        (x.heloc ? '<span class="t3sub2 compact loanln">💳 ' + x.heloc.rate + '% · ' + km(x.heloc.avail) + ' avail</span>' : "") + '</span><span class="t3lvl lvdots">○○</span></button>' +
-        '<div class="t3body">' + homeCard(hm) + '</div></section>';
-    });
+    h += D.homes.map(function (hm) { return homeTile(hm, "homes"); }).join("");
     return h + '</div>';
   } };
   P["homes/history"] = { html: function () {
@@ -188,7 +190,8 @@
   }
   P.rhomes = { html: function () {
     var list = rentalHomes();
-    return head("Rental Homes", list.length + " rentals · the same figures as Homes and Rental CF") + list.map(rentalCard).join("") +
+    return head("Rental Homes", list.length + " rentals · the Homes tab's own cards") + '<div class="mobi homes">' + list.map(function (hm) { return homeTile(hm, "rhomes"); }).join("") + '</div>' +
+      '<details class="card g3d" style="--tc:#1F6F8B"><summary class="row between"><b>12-month figures</b><span class="small muted">per rental</span></summary>' + list.map(rentalCard).join("") + '</details>' +
       '<p class="small muted">Expected = rent + pet / other rent + utility allowance (Tenants). 12-month figures: Rental CF through Sep 28.</p>';
   } };
   P["rhomes/archived"] = { html: function () {
