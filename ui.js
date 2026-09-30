@@ -62,13 +62,18 @@ window.UI = (function () {
   // detail levels: [data-lvkey] opens / closes on a tap of its .lvhead; every page starts closed
   function levels(root) {
     function set(el, l) { el.dataset.lvl = l; el.classList.remove("lvl0", "lvl2"); el.classList.add("lvl" + l);
+      if (el.classList.contains("tile3")) { el.classList.toggle("open", l == 2);          // Cars / Homes tiles
+        var box = el.closest(".mobi"); if (box) box.classList.toggle("has-open", !!box.querySelector(".tile3.lvl2")); }
       var m = el.querySelector(".lvdots"); if (m) m.textContent = l == 2 ? "●●" : "○○"; }
     root.querySelectorAll("[data-lvkey]").forEach(function (el) {
       set(el, 0);
       var head = el.querySelector(".lvhead"); if (!head) return;
       head.addEventListener("click", function (e) {
         if (e.target.closest("a[href]")) return;
-        e.preventDefault(); e.stopPropagation(); set(el, el.dataset.lvl == 2 ? 0 : 2);
+        e.preventDefault(); e.stopPropagation();
+        var l = el.dataset.lvl == 2 ? 0 : 2, g = el.dataset.lvgroup;      // lvgroup: one open at a time
+        if (l == 2 && g) root.querySelectorAll('[data-lvgroup="' + g + '"]').forEach(function (x) { if (x !== el && x.dataset.lvl == 2) set(x, 0); });
+        set(el, l);
       });
     });
   }

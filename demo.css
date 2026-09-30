@@ -12,3 +12,7 @@ nav.strip .subs a{cursor:default}
 .page{display:block}
 html,body{min-height:100%}
 body{min-height:100dvh}
+.rch{width:100%;height:auto;display:block;overflow:visible}
+.rch .g{stroke:var(--line);stroke-width:1}.rch .ax{fill:var(--muted);font-size:9px}
+body.area-rentals{--sec:#1F6F8B}
+.mobi.cars .tile3.open .t3body{overflow:visible}

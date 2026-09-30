@@ -137,7 +137,7 @@
 
   // ---------------- Rental CF ----------------
   var RC = { home: "cedar" };
-  P["finances/rentcf"] = { html: function () {
+  P.rentcf = { html: function () {
     var hm = D.homes.filter(function (x) { return x.key === RC.home; })[0], r = D.rentals[RC.home];
     var putIn = r.down + r.closing + r.improve, ys = r.years.map(function (y) { var noi = y[1] - y[2]; return { y: y[0], rent: y[1], opex: y[2], noi: noi, intr: y[3], prin: y[4], cash: noi - y[3] - y[4] }; });
     var tot = { rent: 0, opex: 0, noi: 0, intr: 0, prin: 0, cash: 0 }; ys.forEach(function (y) { for (var k in tot) tot[k] += y[k]; });
