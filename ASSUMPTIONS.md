@@ -1,4 +1,4 @@
-# Assumptions to review
+# Assumptions (all confirmed as built — Round 52, 2026-09-30)
 
 Made while building the demo without check-ins. Each can be changed; say which number.
 
