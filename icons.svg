@@ -1,45 +1,4 @@
-<!doctype html>
-<html lang="en"><head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Hub Demo">
-<meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#F6F3EC" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1C211E" media="(prefers-color-scheme: dark)">
-<meta name="description" content="A demo of a personal home hub app, filled with a made-up household.">
-<link rel="apple-touch-icon" href="icon-180.png">
-<link rel="icon" href="icon-180.png">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="finances.css">
-<link rel="stylesheet" href="investments.css">
-<link rel="stylesheet" href="audit.css">
-<link rel="stylesheet" href="r60.css">
-<link rel="stylesheet" href="phone.css">
-<link rel="stylesheet" href="demo.css">
-<script>
-/* Appearance (Settings: Auto / Light / Dark, kept on this device): flips every prefers-color-scheme: dark block */
-(function(){
-  function flip(rules, v){ [].forEach.call(rules||[], function(r){
-    if (r.media && r.conditionText !== undefined) {
-      if (r.__m === undefined) r.__m = r.media.mediaText;
-      if (/prefers-color-scheme:\s*dark/.test(r.__m)) { var t = v==='dark' ? 'all' : v==='light' ? 'not all' : r.__m; if (r.media.mediaText !== t) r.media.mediaText = t; }
-      flip(r.cssRules, v);
-    } }); }
-  window.hubTheme = function(v){
-    [].forEach.call(document.styleSheets, function(sh){ try{ flip(sh.cssRules, v); }catch(e){} });
-    document.documentElement.style.colorScheme = (v==='light'||v==='dark') ? v : '';
-  };
-  var v=null; try{ v=localStorage.getItem('demo.theme'); }catch(e){}
-  if (v && v!=='auto') window.addEventListener('load', function(){ hubTheme(v); });
-})();
-</script>
-<title>Hub Demo</title>
-</head><body class="sec-hub" data-area="hub">
-<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
 
 <symbol id="cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11h11L21 7H6.2"/><circle cx="9" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/></symbol>
 <symbol id="bag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
@@ -83,13 +42,3 @@
 <symbol id="grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
 <symbol id="back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4l-8 8 8 8"/></symbol>
 </svg>
-<div class="wrap"></div>
-<div id="bars"></div>
-<script src="data.js"></script>
-<script src="ui.js"></script>
-<script src="money.js"></script>
-<script src="assets.js"></script>
-<script src="rest.js"></script>
-<script src="household.js"></script>
-<script src="app.js"></script>
-</body></html>

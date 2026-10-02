@@ -1,296 +1,429 @@
 /* The made-up household behind every screen. Nothing here comes from a real person: names, banks, homes, cars and
-   amounts are invented. Screens compute their figures from these objects, so the same number reads the same everywhere. */
+   amounts are invented. Screens compute their figures from these objects, so the same number reads the same everywhere.
+   "Today" is Thursday Oct 1, 2026. */
 window.DEMO = (function () {
+  function r2(n) { return Math.round(n * 100) / 100; }
+  function sum(list, f) { return list.reduce(function (t, x) { return t + f(x); }, 0); }
+  var today = new Date(2026, 9, 1);
+
   var people = [
-    { key: "alex", name: "Alex", role: "self" },
-    { key: "jordan", name: "Jordan", role: "spouse" },
-    { key: "maya", name: "Maya", role: "child" },
-    { key: "theo", name: "Theo", role: "child" }
+    { key: "casey", name: "Casey", role: "self" },
+    { key: "morgan", name: "Morgan", role: "partner" },
+    { key: "ellis", name: "Ellis", role: "child", age: 16, grade: "11th grade" }
   ];
 
   var banks = {
-    NCU: { name: "Northwind CU", short: "Northwind", color: "#2F6FA3" },
-    HB: { name: "Harbor Bank", short: "Harbor", color: "#1F8A70" },
-    SUM: { name: "Summit Card", short: "Summit", color: "#8E44AD" },
-    PINE: { name: "Pinecrest Savings", short: "Pinecrest", color: "#B7791F" },
-    ATL: { name: "Atlas Invest", short: "Atlas", color: "#2E8B57" }
+    LCU: { name: "Larkspur Credit Union", short: "Larkspur", color: "#3B6EA5" },
+    TWB: { name: "Tidewater Bank", short: "Tidewater", color: "#1E7F74" },
+    QC: { name: "Quill Card", short: "Quill", color: "#7C4DAA" },
+    ORI: { name: "Orchard Invest", short: "Orchard", color: "#3F8F4F" }
   };
 
-  // type: checking | savings | cd | card | stocks | retirement | hsa | 529 | rental
+  // type: checking | savings | card | stocks | retirement | hsa | 529 | rental.   bal = balance today (cards negative)
   var accounts = [
-    { id: "a1", bank: "NCU", name: "Everyday Checking", end: "4417", type: "checking", bal: 12480.55, who: "alex" },
-    { id: "a2", bank: "NCU", name: "Rainy-day Savings", end: "4418", type: "savings", bal: 21905.10, who: "alex" },
-    { id: "a3", bank: "HB", name: "Joint Checking", end: "7302", type: "checking", bal: 6112.84, who: "jordan" },
-    { id: "a4", bank: "PINE", name: "High-Yield Savings", end: "9051", type: "savings", bal: 7711.62, who: "jordan" },
-    { id: "a5", bank: "NCU", name: "CDs (3)", end: "4420", type: "cd", bal: 25000.00, who: "alex" },
-    { id: "a6", bank: "SUM", name: "Rewards Card", end: "2266", type: "card", bal: -1842.37, who: "alex", due: "Oct 14" },
-    { id: "a7", bank: "HB", name: "Everyday Visa", end: "5530", type: "card", bal: -623.19, who: "jordan", due: "Oct 21" },
-    { id: "a8", bank: "HB", name: "Cedar LLC Checking", end: "8124", type: "rental", bal: 3410.00, home: "cedar" },
-    { id: "a9", bank: "HB", name: "Birch LLC Checking", end: "8125", type: "rental", bal: 2905.45, home: "birch" },
-    { id: "a10", bank: "ATL", name: "Brokerage", end: "6630", type: "stocks", bal: 84220.00, who: "alex", inv: 61500 },
-    { id: "a11", bank: "ATL", name: "401(k)", end: "6631", type: "retirement", bal: 212480.00, who: "alex", inv: 158200 },
-    { id: "a12", bank: "ATL", name: "HSA", end: "6632", type: "hsa", bal: 9340.00, who: "alex", inv: 7900 },
-    { id: "a13", bank: "ATL", name: "College 529", end: "1188", type: "529", bal: 31760.00, who: "maya", inv: 27400 }
+    { id: "a1", bank: "LCU", name: "Everyday Checking", end: "2093", type: "checking", bal: 8940.12, who: "casey" },
+    { id: "a2", bank: "LCU", name: "Savings", end: "2094", type: "savings", bal: 42000.00, who: "casey" },
+    { id: "a3", bank: "TWB", name: "Joint Checking", end: "6618", type: "checking", bal: 4385.70, who: "morgan" },
+    { id: "a4", bank: "TWB", name: "Juniper LLC Checking", end: "6640", type: "rental", bal: 5120.33, home: "juniper" },
+    { id: "a5", bank: "QC", name: "Everyday Card", end: "7751", type: "card", bal: -1264.08, who: "casey", due: "Oct 18" },
+    { id: "a6", bank: "TWB", name: "Visa", end: "3307", type: "card", bal: -488.52, who: "morgan", due: "Oct 9" },
+    { id: "a7", bank: "ORI", name: "Brokerage", end: "0582", type: "stocks", bal: 36900.00, who: "casey", inv: 31000 },
+    { id: "a8", bank: "ORI", name: "401(k)", end: "0583", type: "retirement", bal: 118400.00, who: "casey", inv: 92000 },
+    { id: "a9", bank: "ORI", name: "403(b)", end: "0590", type: "retirement", bal: 74250.00, who: "morgan", inv: 60100 },
+    { id: "a10", bank: "ORI", name: "HSA", end: "0584", type: "hsa", bal: 5830.00, who: "casey", inv: 5100 },
+    { id: "a11", bank: "ORI", name: "529 · Ellis", end: "0591", type: "529", bal: 26480.00, who: "ellis", inv: 23000 }
   ];
 
+  var JUN = (function () { var b = 391200, r = 0.06125 / 12, by = {};
+    for (var n = 0; n < 53; n++) { var yr = 2022 + Math.floor((n + 5) / 12), pr = 2377.05 - b * r; b -= pr; by[yr] = (by[yr] || 0) + pr; }
+    return { bal: Math.round(b * 100) / 100, byYear: by }; })();
   var homes = [
-    { key: "maple", name: "Maple", kind: "own", color: "#F2612D", value: 685000, loan: 402300, heloc: 18500, rate: 5.125, borrowed: 448000, helocLimit: 60000, bought: "May 2021", price: 560000, down: 112000, closing: 9100, improve: 18400 },
-    { key: "cedar", name: "Cedar", kind: "rental", color: "#C2410C", value: 412000, loan: 268900, rent: 2350, rate: 6.25, borrowed: 284000 },
-    { key: "birch", name: "Birch", kind: "rental", color: "#D97706", value: 389000, loan: 251400, rent: 2195, rate: 6.5, borrowed: 278400 }
+    { key: "willow", name: "Willow", kind: "own", type: "Townhouse", color: "#C0714E", value: 452000, loan: 241600, rate: 3.875,
+      borrowed: 304000, bought: "Sep 2018", price: 338000, down: 34000, lender: "Larkspur Credit Union",
+      pi: 1429.52, escrow: 410, payment: 1839.52, payDay: 1, hoa: 240 },
+    // Juniper's balance and yearly principal come from its own schedule, so every page ties (Rental CF, Net Worth, Mortgage)
+    { key: "juniper", name: "Juniper", kind: "rental", type: "Duplex", color: "#8C5A44", value: 528000, loan: JUN.bal, rate: 6.125,
+      borrowed: 391200, bought: "Apr 2022", price: 489000, down: 97800, closing: 8400, lender: "Bramble Home Loans",
+      pi: 2377.05, escrow: 640, payment: 3017.05, payDay: 1, rent: 3070, water: 118, llcAcct: "a4",
+      units: [{ key: "A", name: "Unit A", tenant: "T. Vance", since: "Aug 2024", rent: 1575 },
+              { key: "B", name: "Unit B", tenant: "L. Moreau", since: "Jan 2026", rent: 1495 }],
+      loc: { bank: "Tidewater", limit: 40000, owed: 14600, avail: 25400, rate: 7.75, prime: 7.25, margin: 0.5, plan: 600, planDay: 20 } }
   ];
 
   var cars = [
-    { key: "ioniq", name: "Ioniq 5", year: 2023, color: "#7B2FF7", value: 31000, loan: 14820, borrowed: 32000, paid: 46500, miles: 21480, next: "Tire rotation", nextIn: "in 12 days" },
-    { key: "outback", name: "Outback", year: 2019, color: "#4F7C8A", value: 16500, loan: 0, paid: 27800, miles: 68210, next: "Oil change", nextIn: "in 640 mi" }
+    { key: "cx5", name: "CX-5", make: "Mazda", year: 2021, color: "#B23A48", value: 19500, loan: 7950, borrowed: 24000, paid: 31800,
+      apr: 2.49, payment: 414, payDay: 12, lender: "Larkspur Credit Union", miles: 48620, next: "Oil change", nextIn: "in 19 days" }
   ];
 
-  var utilities = { gas: 62.40, electricity: 148.15, water: 90.75, hoa: 185.00, month: "Sep" };
+  // ---------- Willow's utilities (Oct 2025 -> Sep 2026) ----------
+  var UM = ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"];
+  var uGas = [34.20, 71.40, 118.30, 152.10, 139.60, 108.20, 77.50, 47.30, 29.40, 25.10, 31.20, 38.60];
+  var uPow = [96.40, 101.20, 112.60, 118.30, 108.10, 98.40, 86.20, 92.70, 128.40, 172.50, 149.30, 131.10];
+  var uWat = [68.10, 57.40, 55.20, 54.90, 54.80, 56.30, 63.20, 82.40, 98.10, 101.30, 92.20, 79.40];
+  var uHoa = [235, 235, 235, 240, 240, 240, 240, 240, 240, 240, 240, 240];
+  var utilities = { gas: uGas[11], electricity: uPow[11], water: uWat[11], hoa: 240, month: "Sep" };
 
-  var tasks = { urgent: 2, week: 5, byArea: { money: 2, assets: 3, rentals: 1, utilities: 1, identity: 1 } };
-  var renewals = [{ what: "Passport · Jordan", when: "in 7 mo" }, { what: "Driver's license · Alex", when: "in 11 mo" }];
+  var tx = [], id = 1, seed = 20261001;
+  function rnd() { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; }
+  function pick(list) { return list[Math.floor(rnd() * list.length)]; }
 
-  function sum(list, f) { return list.reduce(function (t, x) { return t + f(x); }, 0); }
+  var cats = {
+    "Groceries": "#2A9D5C", "Dining": "#E07B24", "Fuel": "#5A6B85", "Shopping": "#8A4FB8", "Family": "#D1495B", "Education": "#C0405E",
+    "Utilities": "#C98A12", "Mortgage": "#2F6FA3", "HOA": "#7A6FA8", "Subscriptions": "#1E9AA8", "Insurance": "#A0522D", "Phone & internet": "#4F7C8A",
+    "Health": "#C0405E", "Salary": "#2E8B57", "Rent": "#2E8B57", "Interest": "#2E8B57", "Car loan": "#7B2FF7", "Line of credit": "#2F6FA3",
+    "Savings & investing": "#3F8F4F", "Fees": "#8A938C", "Transfer": "#8A938C", "Travel": "#1F77B4"
+  };
+
+  function add(y, m, d, acct, desc, cat, amount, who, extra) {
+    var t = { id: id++, date: new Date(y, m, d), acct: acct, desc: desc, cat: cat, amount: r2(amount), who: who || null };
+    if (extra) for (var k in extra) t[k] = extra[k];
+    tx.push(t); return t;
+  }
+  function pair(y, m, d, from, to, descFrom, descTo, amt, cat) {      // a transfer: both legs
+    add(y, m, d, from, descFrom, cat || "Transfer", -amt); add(y, m, d, to, descTo, cat || "Transfer", amt);
+  }
+  function lastDay(y, m) { return new Date(y, m + 1, 0).getDate(); }
+
+  var spendMenu = [   // [category, merchants, low, high, weight]
+    ["Groceries", ["Fernhill Market", "Corner Co-op", "Big Basket Wholesale", "Greenleaf Grocer"], 38, 190, 5],
+    ["Dining", ["Noodle Bar 9", "Sunny Side Cafe", "Pizza Foundry", "Maple & Rye Bakery", "Taco Garage"], 11, 78, 4],
+    ["Fuel", ["Valley Fuel", "QuickStop Gas"], 34, 58, 2],
+    ["Shopping", ["Online Market", "Home Goods Depot", "Book Nook", "Trail & Tackle"], 16, 210, 3],
+    ["Family", ["Ridgeview Pharmacy", "Skate Park Pass", "Corner Cinema"], 14, 90, 2],
+    ["Health", ["Family Pharmacy", "Eastside Vision"], 12, 96, 1]
+  ];
+  var menuBag = []; spendMenu.forEach(function (s) { for (var i = 0; i < s[4]; i++) menuBag.push(s); });
+
+  // ---- generate Aug 1 -> Oct 1, 2026 ----
+  var casey0 = new Date(2026, 7, 7);                  // Casey is paid every other Friday
+  var cardPay = { a5: {}, a6: {} };
+  for (var day = new Date(2026, 7, 1); day <= today; day.setDate(day.getDate() + 1)) {
+    var Y = day.getFullYear(), M = day.getMonth(), dd = day.getDate(), mi = M === 7 ? 0 : M === 8 ? 1 : 2;   // 0 Aug, 1 Sep, 2 Oct
+    if (dd === 1) {
+      add(Y, M, dd, "a1", "Willow mortgage · Larkspur CU", "Mortgage", -1839.52, "Casey");
+      add(Y, M, dd, "a4", "Juniper mortgage · Bramble Home Loans", "Mortgage", -3017.05);
+      add(Y, M, dd, "a4", "Rent · Unit A · T. Vance", "Rent", 1575);
+      add(Y, M, dd, "a4", "Rent · Unit B · L. Moreau", "Rent", 1495);
+    }
+    if (dd === 2) pair(Y, M, dd, "a1", "a2", "Transfer to Savings", "Transfer from Everyday Checking", 300);
+    if (dd === 3) {
+      pair(Y, M, dd, "a3", "a4", "Transfer to Juniper LLC", "Transfer from Joint Checking", 250, "Savings & investing");
+      pair(Y, M, dd, "a1", "a7", "Auto-invest · Orchard Brokerage", "Auto-invest from Everyday Checking", 400, "Savings & investing");
+      pair(Y, M, dd, "a1", "a11", "529 contribution · Ellis", "Contribution from Everyday Checking", 300, "Savings & investing");
+      add(Y, M, dd, "a6", "Trailhead Gym", "Subscriptions", -45, "Morgan");
+    }
+    if (dd === 5) add(Y, M, dd, "a1", "Willow HOA", "HOA", -240);
+    if (dd === 6) add(Y, M, dd, "a4", "Metro Water · Juniper water & sewer", "Utilities", -118);
+    if (dd === 8) add(Y, M, dd, "a1", "Lakeside Power", "Utilities", -uPow[mi + 10]);
+    if (dd === 9 && mi === 1) cardPay.a6.sep = add(Y, M, dd, "a3", "Visa payment · Tidewater", "Transfer", 0);
+    if (dd === 9 && mi === 0) pair(Y, M, dd, "a3", "a6", "Visa payment · Tidewater", "Payment received", 402.15);
+    if (dd === 10) add(Y, M, dd, "a1", "Valley Gas Co", "Utilities", -uGas[mi + 10]);
+    if (dd === 12) add(Y, M, dd, "a1", "Mazda loan · Larkspur CU", "Car loan", -414);
+    if (dd === 14) add(Y, M, dd, "a1", "Metro Water", "Utilities", -uWat[mi + 10]);
+    if (dd === 15 || dd === lastDay(Y, M)) add(Y, M, dd, "a3", "Payroll · Marlowe Health", "Salary", 2240.15, "Morgan");
+    if (dd === 18 && mi === 0) pair(Y, M, dd, "a1", "a5", "Everyday Card payment · Quill", "Payment received", 1160.22);
+    if (dd === 18 && mi === 1) cardPay.a5.sep = add(Y, M, dd, "a1", "Everyday Card payment · Quill", "Transfer", 0);
+    if (dd === 20) {
+      add(Y, M, dd, "a3", "Juniper line of credit payment · Tidewater", "Line of credit", -600, "Morgan");
+      add(Y, M, dd, "a5", "StreamBox", "Subscriptions", mi === 0 ? -11.99 : -12.99, "Casey", { fixed: 1 });
+      add(Y, M, dd, "a1", "Pine Mutual Auto", "Insurance", -128);
+    }
+    if (dd === 22) { add(Y, M, dd, "a6", "Pulse Music", "Subscriptions", -10.99, "Morgan", { fixed: 1 });
+      add(Y, M, dd, "a1", "Hummingbird Wireless", "Phone & internet", -112); }
+    if (dd === 25) { add(Y, M, dd, "a5", "CloudVault", "Subscriptions", -2.99, "Casey", { fixed: 1 });
+      add(Y, M, dd, "a2", "Interest", "Interest", mi === 0 ? 29.84 : 31.12); }
+    if (day.getDay() === 5 && Math.round((day - casey0) / 864e5) % 14 === 0) add(Y, M, dd, "a1", "Payroll · Ferncliff Studio", "Salary", 3185.40, "Casey");
+    var n = (day.getDay() === 0 || day.getDay() === 6) ? 3 : 2;
+    for (var k = 0; k < n; k++) {
+      var s = pick(menuBag), r = rnd(), amt = s[2] + rnd() * (s[3] - s[2]), acct, who;
+      if (r < 0.40) { acct = "a5"; who = "Casey"; } else if (r < 0.52) { acct = "a6"; who = "Morgan"; }
+      else if (r < 0.78) { acct = "a1"; who = "Casey"; } else { acct = "a3"; who = "Morgan"; }
+      add(Y, M, dd, acct, pick(s[1]), s[0], -amt, who, { rand: 1 });
+    }
+  }
+  // fixed one-offs: Ellis's school costs, a dental bill, a duplicate charge, a small fee
+  add(2026, 7, 14, "a5", "Ridgeview High · activity fee", "Education", -85, "Casey", { fixed: 1 });
+  add(2026, 7, 26, "a5", "Prep Academy · test prep", "Education", -240, "Casey", { fixed: 1 });
+  add(2026, 8, 12, "a6", "Bright Smiles Dental", "Health", -184, "Morgan", { fixed: 1 });
+  add(2026, 8, 17, "a5", "Maple & Rye Bakery", "Dining", -18.40, "Casey", { fixed: 1 });
+  add(2026, 8, 17, "a5", "Maple & Rye Bakery", "Dining", -18.40, "Casey", { fixed: 1 });
+  add(2026, 8, 24, "a5", "College Board · AP exam fee", "Education", -98, "Casey", { fixed: 1 });
+  add(2026, 8, 28, "a3", "Paper statement fee", "Fees", -2, "Morgan", { fixed: 1 });
+
+  add(2026, 8, 30, "a5", "Fernhill Market", "Groceries", -61.30, "Casey", { fixed: 1 });
+  add(2026, 9, 1, "a5", "Noodle Bar 9", "Dining", -24.50, "Casey", { fixed: 1 });
+  add(2026, 9, 1, "a6", "Eastside Vision", "Health", -38.00, "Morgan", { fixed: 1 });
+  // scale September + Oct 1 spending on each card so the balance today is exactly what the card says
+  [["a5", 1264.08], ["a6", 488.52]].forEach(function (c) {
+    var list = tx.filter(function (t) { return t.acct === c[0] && t.amount < 0 && t.date >= new Date(2026, 8, 1); });
+    var fixed = -sum(list.filter(function (t) { return t.fixed; }), function (t) { return t.amount; });
+    var rl = list.filter(function (t) { return t.rand; }), rs = -sum(rl, function (t) { return t.amount; });
+    var f = (c[1] - fixed) / rs;
+    rl.forEach(function (t) { t.amount = r2(t.amount * f); });
+    var left = r2(c[1] + sum(list, function (t) { return t.amount; })); if (rl.length) rl[0].amount = r2(rl[0].amount - left);
+  });
+  // card payments in September = what the card owed from August
+  ["a5", "a6"].forEach(function (c) {
+    var aug = -sum(tx.filter(function (t) { return t.acct === c && t.date < new Date(2026, 8, 1) && t.amount < 0; }), function (t) { return t.amount; });
+    var pay = cardPay[c].sep; pay.amount = -r2(aug);
+    tx.push({ id: id++, date: pay.date, acct: c, desc: "Payment received", cat: "Transfer", amount: r2(aug), who: null });
+  });
+  // today's card charges are still pending
+  tx.forEach(function (t) { if (t.date >= new Date(2026, 8, 30) && (t.acct === "a5" || t.acct === "a6") && t.amount < 0) t.pending = true; });
+  tx.sort(function (a, b) { return b.date - a.date || b.id - a.id; });
+  accounts.forEach(function (a) {      // running balance per account, worked back from today's balance
+    var run = a.bal; tx.forEach(function (t) { if (t.acct === a.id) { t.run = r2(run); run = r2(run - t.amount); } });
+  });
+
+  var subs = [
+    { name: "StreamBox", acct: "a5", rhythm: "monthly", amount: 12.99, next: "Oct 20", ytd: r2(11.99 * 8 + 12.99), who: "Casey" },
+    { name: "Pulse Music", acct: "a6", rhythm: "monthly", amount: 10.99, next: "Oct 22", ytd: r2(10.99 * 9), who: "Morgan" },
+    { name: "CloudVault", acct: "a5", rhythm: "monthly", amount: 2.99, next: "Oct 25", ytd: r2(2.99 * 9), who: "Casey" },
+    { name: "Trailhead Gym", acct: "a6", rhythm: "monthly", amount: 45.00, next: "Oct 3", ytd: 405, who: "Morgan" },
+    { name: "PhotoKit", acct: "a5", rhythm: "yearly", amount: 119.00, next: "Nov 14", ytd: 0, who: "Casey" }
+  ];
+  function ytd9(a) { return r2(sum(a.slice(3), function (x) { return x; })); }
+  var bills = [
+    { name: "Lakeside Power", acct: "a1", rhythm: "monthly", amount: uPow[11], next: "Oct 8", ytd: ytd9(uPow), varies: [86, 173] },
+    { name: "Valley Gas Co", acct: "a1", rhythm: "monthly", amount: uGas[11], next: "Oct 10", ytd: ytd9(uGas), varies: [25, 152] },
+    { name: "Metro Water", acct: "a1", rhythm: "monthly", amount: uWat[11], next: "Oct 14", ytd: ytd9(uWat), varies: [54, 102] },
+    { name: "Willow HOA", acct: "a1", rhythm: "monthly", amount: 240, next: "Oct 5", ytd: 2160 },
+    { name: "Pine Mutual Auto", acct: "a1", rhythm: "monthly", amount: 128, next: "Oct 20", ytd: 1152 },
+    { name: "Hummingbird Wireless", acct: "a1", rhythm: "monthly", amount: 112, next: "Oct 22", ytd: 1008 },
+    { name: "Juniper water & sewer", acct: "a4", rhythm: "monthly", amount: 118, next: "Oct 6", ytd: 1062, rental: true }
+  ];
+  var alerts = [
+    { name: "StreamBox", why: "Price up $11.99 → $12.99", acct: "a5", amount: -12.99, date: "Sep 20", hot: false },
+    { name: "Maple & Rye Bakery", why: "Possible duplicate", acct: "a5", amount: -18.40, date: "Sep 17", hot: true },
+    { name: "Paper statement fee", why: "New fee", acct: "a3", amount: -2.00, date: "Sep 28", hot: false }
+  ];
+
+  // ---------- totals (always computed from the accounts, homes and cars above) ----------
   var cash = sum(accounts.filter(function (a) { return a.type === "checking" || a.type === "savings"; }), function (a) { return a.bal; });
-  var invested = sum(accounts.filter(function (a) { return ["stocks", "retirement", "hsa", "529", "cd"].indexOf(a.type) >= 0; }), function (a) { return a.bal; });
+  var invested = sum(accounts.filter(function (a) { return ["stocks", "retirement", "hsa", "529"].indexOf(a.type) >= 0; }), function (a) { return a.bal; });
   var rentalCash = sum(accounts.filter(function (a) { return a.type === "rental"; }), function (a) { return a.bal; });
   var cardDebt = -sum(accounts.filter(function (a) { return a.type === "card"; }), function (a) { return a.bal; });
   var homeValue = sum(homes, function (h) { return h.value; });
-  var homeDebt = sum(homes, function (h) { return h.loan + (h.heloc || 0); });
+  var homeDebt = sum(homes, function (h) { return h.loan + (h.loc ? h.loc.owed : 0); });
   var carValue = sum(cars, function (c) { return c.value; });
   var carDebt = sum(cars, function (c) { return c.loan; });
-
   var totals = {
-    cash: cash, invested: invested, rentalCash: rentalCash, cardDebt: cardDebt,
+    cash: cash + rentalCash, householdCash: cash, invested: invested, rentalCash: rentalCash, cardDebt: cardDebt,
+    homeValue: homeValue, homeDebt: homeDebt, carValue: carValue, carDebt: carDebt,
     homeEquity: homeValue - homeDebt, carEquity: carValue - carDebt,
-    own: cash + invested + rentalCash + homeValue + carValue,
+    own: cash + rentalCash + invested + homeValue + carValue,
     owe: cardDebt + homeDebt + carDebt,
     bills: utilities.gas + utilities.electricity + utilities.water + utilities.hoa,
     rentDue: sum(homes.filter(function (h) { return h.rent; }), function (h) { return h.rent; })
   };
   totals.netWorth = totals.own - totals.owe;
+  Object.keys(totals).forEach(function (k) { totals[k] = r2(totals[k]); });
 
-  // ---------- transactions (Aug 1 → today), made up with a fixed seed so every visit shows the same list ----------
-  var today = new Date(2026, 8, 29);
-  var seed = 20260929;
-  function rnd() { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; }
-  function pick(list) { return list[Math.floor(rnd() * list.length)]; }
-  function r2(n) { return Math.round(n * 100) / 100; }
-
-  var cats = {
-    "Groceries": "#2A9D5C", "Dining": "#E07B24", "Fuel & charging": "#5A6B85", "Shopping": "#8A4FB8", "Kids": "#D1495B",
-    "Utilities": "#C98A12", "Mortgage": "#2F6FA3", "HOA": "#7A6FA8", "Subscriptions": "#1E9AA8", "Insurance": "#A0522D",
-    "Health": "#C0405E", "Salary": "#2E8B57", "Rent": "#2E8B57", "Interest": "#2E8B57", "Transfer": "#8A938C", "Travel": "#1F77B4"
-  };
-  var spend = [
-    ["Groceries", ["Fresh Fields Market", "Harvest Grocer", "Corner Co-op", "Big Box Wholesale"], 40, 210],
-    ["Dining", ["Corner Bakery", "Noodle House", "Taco Garage", "Sunny Side Cafe", "Pizza Palace"], 12, 85],
-    ["Fuel & charging", ["QuickCharge", "Valley Fuel"], 14, 62],
-    ["Shopping", ["Online Market", "Home Goods Depot", "Book Nook", "Sports Outlet"], 18, 240],
-    ["Kids", ["Little Stars Dance", "Rec Center Swim", "School Store"], 15, 120],
-    ["Health", ["Family Pharmacy", "Bright Smiles Dental"], 12, 160]
-  ];
-  var tx = [], id = 1;
-  function add(d, acct, desc, cat, amount, who) {
-    tx.push({ id: id++, date: new Date(2026, d[0], d[1]), acct: acct, desc: desc, cat: cat, amount: r2(amount), who: who || null });
-  }
-  for (var day = new Date(2026, 7, 1); day <= today; day.setDate(day.getDate() + 1)) {
-    var m = day.getMonth(), dd = day.getDate(), dow = day.getDay(), d = [m, dd];
-    if (dd === 1) { add(d, "a1", "Maple mortgage · Northwind CU", "Mortgage", -2845.00);
-      add(d, "a8", "Cedar mortgage payment", "Mortgage", -1985.40); add(d, "a9", "Birch mortgage payment", "Mortgage", -1862.15);
-      add(d, "a1", "Transfer to Rainy-day Savings", "Transfer", -500); }
-    if (dd === 2) { add(d, "a8", "Rent · Cedar tenant", "Rent", 2350); add(d, "a9", "Rent · Birch tenant", "Rent", 2195); }
-    if (dd === 5) { add(d, "a3", "Summit Card payment", "Transfer", -1600); add(d, "a8", "Cedar HOA", "HOA", -210); }
-    if (dd === 8) { add(d, "a1", "Maple HOA", "HOA", -185); add(d, "a1", "Lakeside Power", "Utilities", -(m === 7 ? 162.30 : 148.15)); }
-    if (dd === 11) { add(d, "a1", "Valley Gas Co", "Utilities", -(m === 7 ? 48.90 : 62.40)); add(d, "a9", "Birch water & sewer", "Utilities", -58.20); }
-    if (dd === 14) { add(d, "a3", "Harbor Visa payment", "Transfer", -700); add(d, "a1", "Metro Water", "Utilities", -90.75); }
-    if (dd === 15 || dd === 30) add(d, "a3", "Payroll · Brightline Labs", "Salary", 2280.40, "Jordan");
-    if (dd === 20) { add(d, "a6", "StreamFlix", "Subscriptions", m === 7 ? -13.99 : -15.49, "Alex"); add(d, "a1", "Safe Auto Insurance", "Insurance", -142.00); }
-    if (dd === 22) add(d, "a7", "Tune Music+", "Subscriptions", -10.99, "Jordan");
-    if (dd === 25) { add(d, "a6", "CloudDrive 2TB", "Subscriptions", -2.99, "Alex"); add(d, "a2", "Interest", "Interest", m === 7 ? 71.18 : 73.40); }
-    if (dd === 3) add(d, "a7", "Iron Fitness", "Subscriptions", -39.00, "Jordan");
-    if (dd === 27) add(d, "a1", "Summit Card payment", "Transfer", -900);
-    if (dow === 5 && (Math.floor((day - new Date(2026, 7, 7)) / 864e5) % 14 === 0)) add(d, "a1", "Payroll · Northgate Systems", "Salary", 3410.25, "Alex");
-    var n = dow === 0 || dow === 6 ? 3 : 2;
-    for (var k = 0; k < n; k++) {
-      var s = pick(spend), card = rnd() < 0.6 ? "a6" : "a7";
-      add(d, card, pick(s[1]), s[0], -(s[2] + rnd() * (s[3] - s[2])), card === "a6" ? "Alex" : pick(["Jordan", "Maya", "Jordan"]));
+  // ---------- months: Jan 2025 -> Dec 2027 (up to Sep 2026 = actuals, Oct 2026 on = plan) ----------
+  // cash = household cash (Everyday Checking + Savings + Joint Checking) at month-end; invest = the rental LLC's cash.
+  // Identity for every month:  cash = previous cash + income - spending - payments   (payments = mortgage + carLoan + locPaid + savings)
+  // and  invest = previous invest + rent + topUp - juniperMortgage - water - repairs.
+  var months = [];
+  (function () {
+    var MN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    function paydays(y, m) {          // Casey's every-other-Friday pay days that fall in a month
+      var n = 0; for (var k = -80; k <= 80; k++) { var d = new Date(2026, 7, 7 + 14 * k); if (d.getFullYear() === y && d.getMonth() === m) n++; } return n; }
+    function caseyPay(y) { return y <= 2025 ? 3092.60 : y === 2026 ? 3185.40 : r2(3185.40 * 1.03); }
+    function morganPay(y) { return y <= 2025 ? 2175.30 : y === 2026 ? 2240.15 : r2(2240.15 * 1.03); }
+    function rentA(y, m) { return (y === 2027 && m >= 7) ? 1620 : 1575; }
+    function rentB(y) { return y < 2026 ? 1450 : y === 2026 ? 1495 : 1540; }
+    var season = [0.96, 0.92, 0.97, 0.98, 1.0, 1.02, 1.04, 1.03, 1.0, 1.0, 1.04, 1.18];
+    var inMonth = function (t, y, m) { return t.date.getFullYear() === y && t.date.getMonth() === m; };
+    // actual Aug / Sep 2026 from the transactions above (household cash accounts a1-a3, the rental account a4)
+    function actual(m) {
+      var cashTx = tx.filter(function (t) { return inMonth(t, 2026, m) && (t.acct === "a1" || t.acct === "a2" || t.acct === "a3"); });
+      var income = 0, mort = 0, car = 0, loc = 0, sav = 0, spend = 0;
+      cashTx.forEach(function (t) {
+        var a = t.amount;
+        if (t.cat === "Salary" || t.cat === "Interest") income += a;
+        else if (t.cat === "Mortgage") mort -= a;
+        else if (t.cat === "Car loan") car -= a;
+        else if (t.cat === "Line of credit") loc -= a;
+        else if (/^Transfer to Juniper|^Auto-invest|^529 contribution/.test(t.desc)) sav -= a;
+        else if (/^Transfer to Savings|^Transfer from Everyday/.test(t.desc)) { /* inside household cash */ }
+        else spend -= a;
+      });
+      var rent = 0, rmort = 0, wat = 0, top = 0, rep = 0;
+      tx.filter(function (t) { return inMonth(t, 2026, m) && t.acct === "a4"; }).forEach(function (t) {
+        if (t.cat === "Rent") rent += t.amount; else if (t.cat === "Mortgage") rmort -= t.amount; else if (t.cat === "Utilities") wat -= t.amount;
+        else if (/^Transfer from/.test(t.desc)) top += t.amount; else rep -= t.amount; });
+      return { income: r2(income), spending: r2(spend), mortgage: r2(mort), carLoan: r2(car), locPaid: r2(loc), savings: r2(sav),
+               rent: r2(rent), topUp: r2(top), jMort: r2(rmort), water: r2(wat), repairs: r2(rep) };
     }
-  }
-  add([8, 17], "a6", "Corner Bakery", "Dining", -18.40, "Alex");
-  add([8, 17], "a6", "Corner Bakery", "Dining", -18.40, "Alex");
-  add([8, 12], "a7", "Foreign transaction fee", "Travel", -2.13, "Jordan");
-  tx.sort(function (a, b) { return b.date - a.date || b.id - a.id; });
-  // running balance per account, worked back from today's balance
-  accounts.forEach(function (a) {
-    var run = a.bal;
-    tx.forEach(function (t) { if (t.acct === a.id) { t.run = r2(run); run -= t.amount; } });
-  });
-
-  var subs = [
-    { name: "StreamFlix", acct: "a6", rhythm: "monthly", amount: 15.49, next: "Oct 20", ytd: 127.90, who: "Alex" },
-    { name: "Iron Fitness", acct: "a7", rhythm: "monthly", amount: 39.00, next: "Oct 3", ytd: 351.00, who: "Jordan" },
-    { name: "Tune Music+", acct: "a7", rhythm: "monthly", amount: 10.99, next: "Oct 22", ytd: 98.91, who: "Jordan" },
-    { name: "CloudDrive 2TB", acct: "a6", rhythm: "monthly", amount: 2.99, next: "Oct 25", ytd: 26.91, who: "Alex" },
-    { name: "Shield Antivirus", acct: "a6", rhythm: "yearly", amount: 49.99, next: "Nov 3", ytd: 0, who: "Alex" },
-    { name: "Big Box Membership", acct: "a1", rhythm: "yearly", amount: 65.00, next: "Feb 12", ytd: 65.00 }
-  ];
-  var bills = [
-    { name: "Lakeside Power", acct: "a1", rhythm: "monthly", amount: 148.15, next: "Oct 8", ytd: 1402.30, varies: [96, 212] },
-    { name: "Valley Gas Co", acct: "a1", rhythm: "monthly", amount: 62.40, next: "Oct 11", ytd: 812.60, varies: [31, 188] },
-    { name: "Metro Water", acct: "a1", rhythm: "monthly", amount: 90.75, next: "Oct 14", ytd: 780.10, varies: [64, 118] },
-    { name: "Maple HOA", acct: "a1", rhythm: "monthly", amount: 185.00, next: "Oct 8", ytd: 1665.00 },
-    { name: "Safe Auto Insurance", acct: "a1", rhythm: "monthly", amount: 142.00, next: "Oct 20", ytd: 1278.00 },
-    { name: "Cedar HOA", acct: "a8", rhythm: "monthly", amount: 210.00, next: "Oct 5", ytd: 1890.00, rental: true },
-    { name: "Birch water & sewer", acct: "a9", rhythm: "monthly", amount: 58.20, next: "Oct 11", ytd: 511.40, rental: true, varies: [41, 77] }
-  ];
-  var alerts = [
-    { name: "StreamFlix", why: "Price up $13.99 → $15.49", acct: "a6", amount: -15.49, date: "Sep 20", hot: false },
-    { name: "Corner Bakery", why: "Possible duplicate", acct: "a6", amount: -18.40, date: "Sep 17", hot: true },
-    { name: "Foreign transaction fee", why: "Fee", acct: "a7", amount: -2.13, date: "Sep 12", hot: true }
-  ];
-
-  // ---------- rentals: yearly figures (made up), used by Rental CF and Real Estate ----------
-  var rentals = {
-    cedar: { bought: "Jun 2021", price: 355000, down: 71000, closing: 6200, improve: 4800, firstRent: "Aug 2021", tenant: "since Jul 2025",
-      years: [[2021, 9400, 2310, 4760, 1690], [2022, 27600, 6480, 11200, 4180], [2023, 27600, 7120, 11020, 4450], [2024, 28200, 7340, 10830, 4740], [2025, 28200, 7610, 10620, 5050], [2026, 21150, 5820, 7810, 3860]] },
-    birch: { bought: "Mar 2023", price: 348000, down: 69600, closing: 5900, improve: 7300, firstRent: "May 2023", tenant: "since May 2024",
-      years: [[2023, 16800, 4980, 11200, 1800], [2024, 25800, 6760, 16900, 2620], [2025, 26340, 7040, 16700, 2840], [2026, 19755, 5390, 12400, 2250]] }
-  };   // year: rent, operating costs, interest + tax & insurance, principal
+    var act = { 7: actual(7), 8: actual(8) };
+    var baseSpend = ((act[7].spending / season[7]) + (act[8].spending / season[8])) / 2;
+    function comp(y, m) {
+      if (y === 2026 && (m === 7 || m === 8)) return act[m];
+      var inc = r2(paydays(y, m) * caseyPay(y) + 2 * morganPay(y));
+      var growth = Math.pow(1.03, Math.max(0, y - 2026)) * (y === 2025 ? 0.965 : 1);
+      var wob = 1 + (((y * 7 + m * 13) % 9) - 4) * 0.012;
+      var carLoanPay = (y * 12 + m) <= (2028 * 12 + 4) ? 414 : 0;
+      var rp = ((y * 5 + m) % 7 === 3) ? 160 + ((y + m) % 4) * 60 : 0;
+      return { income: inc, spending: r2(baseSpend * season[m] * growth * wob), mortgage: 1839.52, carLoan: carLoanPay, locPaid: 600, savings: 950,
+               rent: rentA(y, m) + rentB(y), topUp: 250, jMort: 3017.05, water: 118, repairs: rp };
+    }
+    var oct1 = function (acct) { return sum(tx.filter(function (t) { return t.acct === acct && t.date >= today; }), function (t) { return t.amount; }); };
+    var cashSep = r2(sum(["a1", "a2", "a3"], function (a) { var b = accounts.filter(function (x) { return x.id === a; })[0].bal; return b - oct1(a); }));
+    var invSep = r2(accounts[3].bal - oct1("a4"));
+    var rate = function (y, m) { return y < 2026 ? 8.5 : (y === 2026 && m < 3) ? 8.25 : (y === 2026 && m < 6) ? 8.0 : 7.75; };
+    var growth529 = function (y, m) { return 0.004 + (((y * 3 + m * 5) % 7) - 3) * 0.0035; };
+    var list = [], i0 = 2025 * 12, iS = 2026 * 12 + 8, iE = 2027 * 12 + 11;
+    for (var i = i0; i <= iE; i++) { var y = Math.floor(i / 12), m = i % 12, c = comp(y, m);
+      list.push({ ym: y + "-" + ("0" + (m + 1)).slice(-2), label: MN[m] + " " + y, y: y, m: m + 1, plan: i >= 2026 * 12 + 9,
+        income: c.income, spending: c.spending, mortgage: c.mortgage, carLoan: c.carLoan, locPaid: c.locPaid, savings: c.savings,
+        rent: c.rent, topUp: c.topUp, juniperMortgage: c.jMort, water: c.water, repairs: c.repairs, rate: rate(y, m) }); }
+    function delta(o) { return o.income - o.spending - (o.mortgage + o.carLoan + o.locPaid + o.savings); }
+    function rnet(o) { return o.rent + o.topUp - o.juniperMortgage - o.water - o.repairs; }
+    var pS = iS - i0;
+    list[pS].cash = cashSep; list[pS].invest = invSep; list[pS].s529 = 26480; list[pS].locOwed = 14600;
+    for (var j = pS; j > 0; j--) {           // back in time
+      var o = list[j], p = list[j - 1];
+      p.cash = r2(o.cash - delta(o)); p.invest = r2(o.invest - rnet(o));
+      p.s529 = r2((o.s529 - 300) / (1 + growth529(o.y, o.m)));
+      p.locOwed = r2((o.locOwed + o.locPaid) / (1 + o.rate / 1200));
+    }
+    for (var q = pS + 1; q < list.length; q++) {   // plan: forward
+      var oo = list[q], pp = list[q - 1];
+      oo.cash = r2(pp.cash + delta(oo)); oo.invest = r2(pp.invest + rnet(oo));
+      oo.s529 = r2(pp.s529 * 1.004 + 300);
+      oo.locOwed = Math.max(0, r2(pp.locOwed * (1 + oo.rate / 1200) - oo.locPaid));
+    }
+    list.forEach(function (o) { o.payments = r2(o.mortgage + o.carLoan + o.locPaid + o.savings); o.rentalNet = r2(rnet(o)); o.delta = r2(delta(o)); months.push(o); });
+  })();
 
   // ---------- net worth, month by month (ends at today's figure) ----------
   var trend = [];
-  (function () { var v = totals.netWorth, steps = [9800, 6200, -4100, 12400, 7300, 5100, -2600, 9900, 8800, 4700, 6300];
+  (function () { var v = totals.netWorth, steps = [7200, 5100, -3300, 9800, 6100, 4400, -2100, 8200, 7000, 3900, 5200];
     trend.unshift({ m: "Sep", v: v });
     ["Aug", "Jul", "Jun", "May", "Apr", "Mar", "Feb", "Jan", "Dec", "Nov", "Oct"].forEach(function (mn, i) { v -= steps[i]; trend.unshift({ m: mn, v: v }); }); })();
 
+  // ---------- Juniper: yearly figures (made up), used by Rental CF and Real Estate ----------
+  // year: rent, operating costs (water + repairs), interest + tax & insurance, principal
+  var rentals = { juniper: { bought: "Apr 2022", price: 489000, down: 97800, closing: 8400, improve: 3600, firstRent: "Jun 2022", tenant: "Unit A since Aug 2024 · Unit B since Jan 2026",
+    years: [[2022, 18900, 1650, 19300, 2230], [2023, 34980, 2010, 31250, 5010], [2024, 36060, 1880, 30780, 5480], [2025, 36780, 2310, 30280, 5990], [2026, 27645, 1560, 22420, 4790]] } };
+  rentals.juniper.years.forEach(function (y) {
+    y[4] = Math.round(JUN.byYear[y[0]] || 0);
+    if (y[0] >= 2025) y[1] = Math.round(months.filter(function (o) { return o.y === y[0] && !o.plan; }).reduce(function (t, o) { return t + o.rent; }, 0)); });
   var rentalProfit = 0;
   Object.keys(rentals).forEach(function (k) { rentals[k].years.forEach(function (y) { rentalProfit += y[1] - y[2] - y[3] - y[4]; }); });
 
-  // ---------- cars: tire sets, loan, service, history ----------
+  // ---------- car ----------
   var carx = {
-    ioniq: { body: "sedan", perMonth: 1020, since: "Mar 2023",
-      sets: [{ season: "Summer", desc: "Michelin Primacy 235/55R19", miles: 14120, warranty: 50000, on: true, sinceRot: 4380 },
-             { season: "Winter", desc: "Bridgestone Blizzak 235/55R19", miles: 7360, warranty: 40000, on: false }],
-      loan: { bought: 46500, year: 2023, amount: 32000, apr: 3.9, owed: 14820, lender: "Northwind CU", last: [612.40, "Sep 12", 560, 52], payoff: "Aug 2028", principal: 17180, interest: 2410 },
-      service: [["Tire rotation", "Oct 11", 12, "soon"], ["Cabin air filter", "Dec 2026", 70, ""], ["Brake fluid check", "Mar 2027", 170, ""]] },
-    outback: { body: "suv", perMonth: 640, since: "Jun 2019",
-      sets: [{ season: "Summer", desc: "Yokohama Geolandar 225/65R17", miles: 22800, warranty: 60000, on: true, sinceRot: 3900 },
-             { season: "Winter", desc: "Nokian Hakkapeliitta 225/65R17", miles: 16400, warranty: 45000, on: false }],
-      loan: { bought: 27800, year: 2019, amount: 18000, apr: 2.9, owed: 0, lender: "Harbor Bank", paidOff: "May 2023" },
-      service: [["Oil change", "≈ Oct 20", 21, "soon"], ["Registration renewal", "Oct 31", 32, "soon"], ["Wiper blades", "Nov 2026", 45, ""]] }
+    cx5: { body: "suv", perMonth: 540, since: "2021",
+      sets: [{ season: "Summer", desc: "Falken Azenis 225/55R19", miles: 24300, warranty: 50000, on: true, sinceRot: 3100 },
+             { season: "All-weather", desc: "Michelin CrossClimate 225/55R19", miles: 12100, warranty: 60000, on: false }],
+      loan: { bought: 31800, year: 2021, amount: 24000, apr: 2.49, owed: 7950, lender: "Larkspur Credit Union", last: [414, "Sep 12", 17.32, 396.68], payoff: "May 2028", principal: 16050, interest: 1412 },
+      service: [["Oil change", "≈ Oct 20", 19, "soon"], ["Tire rotation", "Nov 2026", 45, ""], ["Brake fluid", "Mar 2027", 170, ""]] }
   };
   var carEvents = [
-    ["Sep 14, 2026", "outback", "Odometer", 68210, "", 0], ["Aug 30, 2026", "ioniq", "Service", 20900, "Tire rotation · QuickLube", 49.99],
-    ["Jul 18, 2026", "outback", "Service", 66100, "Oil change · Valley Auto", 72.40], ["May 02, 2026", "ioniq", "Swap", 18650, "Winter → Summer", 60],
-    ["Apr 28, 2026", "outback", "Swap", 64300, "Winter → Summer", 60], ["Mar 15, 2026", "outback", "Service", 63500, "Brakes, front pads", 289.10],
-    ["Dec 06, 2025", "ioniq", "Swap", 15100, "Summer → Winter", 60], ["Dec 05, 2025", "outback", "Swap", 61020, "Summer → Winter", 60],
-    ["Oct 12, 2025", "ioniq", "Service", 14400, "Cabin air filter", 38.00], ["Aug 21, 2025", "outback", "Service", 59200, "Oil change · Valley Auto", 69.90]
+    ["Sep 18, 2026", "cx5", "Odometer", 48620, "", 0], ["Aug 08, 2026", "cx5", "Service", 47900, "Cabin air filter · Valley Auto", 34.50],
+    ["Apr 24, 2026", "cx5", "Swap", 45800, "All-weather → Summer", 60], ["Mar 14, 2026", "cx5", "Service", 45300, "Oil change · Valley Auto", 68.90],
+    ["Nov 15, 2025", "cx5", "Swap", 42100, "Summer → All-weather", 60], ["Aug 30, 2025", "cx5", "Service", 40800, "Brake pads, front", 242.00]
   ];
-  var swap = { season: "Winter", date: "Nov 12", inDays: 44, why: "First night below 38°F is usually the second week of November",
-    days: [["Tue", 61, 42], ["Wed", 58, 40], ["Thu", 54, 37], ["Fri", 49, 33, "snow"], ["Sat", 52, 35], ["Sun", 57, 39], ["Mon", 60, 41], ["Tue", 62, 43]] };
-  var carsArchived = [{ name: "2011 Minivan", color: "#8A8F98", body: "suv", bought: 24900, from: "Apr 2011", to: "Jun 2019", how: "Traded in", sale: 6200, odo: 131400 }];
+  var swap = { season: "All-weather", date: "Nov 14", inDays: 44, why: "Nights usually drop below 40°F in the second week of November",
+    days: [["Thu", 63, 44], ["Fri", 60, 41], ["Sat", 56, 38], ["Sun", 52, 35], ["Mon", 55, 37], ["Tue", 59, 40], ["Wed", 62, 43], ["Thu", 64, 45]] };
+  var carsArchived = [];
 
   // ---------- homes: leases, tasks, upcoming money, history ----------
   var homex = {
-    maple: { kind: "Own home", mortgage: { servicer: "Northwind CU", last: [2845, "Sep 01"], next: "Oct 01", principal: 45700, interest: 91200 },
-      heloc: { owed: 18500, rate: 8.25, avail: 41500, paid: 6200, repaid: 4100, last: [450, "Sep 15"] },
-      tasks: [["Furnace filter", "Sep 26", -3, "overdue", "R"], ["Clean gutters", "Oct 15", 16, "soon", "Y"], ["Sprinkler blowout", "Oct 20", 21, "soon", "Y"], ["Smoke detector batteries", "Nov 01", 33, "", "G"]] },
-    cedar: { kind: "Rental", llc: "Cedar Rental LLC", lease: { tenant: "R. Alvarez", start: "Jul 01, 2026", end: "Jun 30, 2027", daysLeft: 274, pct: 25, extra: 60, pets: "1 cat" },
-      mortgage: { servicer: "Keystone Home Loans", last: [1985.40, "Sep 01"], next: "Oct 01", principal: 15100, interest: 70600 },
-      tasks: [["HVAC service", "Oct 28", 29, "", "Y"], ["Lease renewal talk", "Mar 2027", 150, "", "G"]] },
-    birch: { kind: "Rental", llc: "Birch Rental LLC", lease: { tenant: "S. Nguyen", start: "May 01, 2026", end: "Apr 30, 2027", daysLeft: 213, pct: 42, extra: 0, pets: "none" },
-      mortgage: { servicer: "Keystone Home Loans", last: [1862.15, "Sep 01"], next: "Oct 01", principal: 27000, interest: 59100 },
-      tasks: [["Water heater flush", "Oct 09", 10, "soon", "Y"], ["Replace furnace filter", "Nov 15", 47, "", "G"]] }
+    willow: { kind: "Own home", mortgage: { servicer: "Larkspur Credit Union", last: [1839.52, "Oct 01"], next: "Nov 01", principal: 62400, interest: 59800 },
+      tasks: [["Furnace filter", "Sep 26", -5, "overdue", "R"], ["Clean gutters", "Oct 15", 14, "soon", "Y"], ["Hose bibs shut off", "Oct 24", 23, "", "Y"], ["Smoke detector batteries", "Nov 01", 31, "", "G"]] },
+    juniper: { kind: "Rental", llc: "Juniper LLC", lease: { tenant: "T. Vance · L. Moreau", start: "Aug 2024 · Jan 2026", end: "Jul 2027 · Dec 2026", daysLeft: 91, pct: 77, extra: 0, pets: "none" },
+      mortgage: { servicer: "Bramble Home Loans", last: [3017.05, "Oct 01"], next: "Nov 01", principal: Math.round(391200 - JUN.bal), interest: 79400 },
+      loc: { servicer: "Tidewater Bank", last: [600, "Sep 20"], next: "Oct 20" },
+      tasks: [["Smoke alarm check · both units", "Oct 12", 11, "soon", "Y"], ["Lease renewal offer · Unit B", "Oct 31", 30, "", "Y"], ["Gutter clean", "Nov 05", 35, "", "G"]] }
   };
-  var upcoming = [["Rent", "cedar", 2350, true, "Oct 02", 3], ["Rent", "birch", 2195, true, "Oct 02", 3], ["Mortgage", "maple", 2845, false, "Oct 01", 2],
-                  ["Mortgage", "cedar", 1985.40, false, "Oct 01", 2], ["Mortgage", "birch", 1862.15, false, "Oct 01", 2], ["HOA", "cedar", 210, false, "Oct 05", 6],
-                  ["HOA", "maple", 185, false, "Oct 08", 9]];
-  var homeEvents = [["Sep 26, 2026", "maple", "Task done", "Deep clean dryer vent", 0], ["Aug 19, 2026", "birch", "Repair", "Garbage disposal replaced", 214],
-                    ["Jul 01, 2026", "cedar", "Lease", "Renewed · R. Alvarez · $2,350", 0], ["Jun 11, 2026", "maple", "Improvement", "Patio pavers", 3850],
-                    ["May 01, 2026", "birch", "Lease", "Renewed · S. Nguyen · $2,195", 0], ["Apr 03, 2026", "cedar", "Repair", "Dishwasher pump", 186],
-                    ["Mar 22, 2026", "maple", "Task done", "Water softener salt", 24]];
-  var values = { maple: [685000, 692400, 668000], cedar: [412000, 405900, 418200], birch: [389000, 394100, 381500] };  // yours · Redfin · RentCast
-  var homesArchived = [{ name: "Aspen", color: "#8A8F98", kind: "Rental (sold)", bought: "Aug 2016", price: 229000, sold: "Mar 2024", sale: 341000, net: 108400 }];
+  var upcoming = [["HOA", "willow", 240, false, "Oct 05", 4], ["Water & sewer", "juniper", 118, false, "Oct 06", 5], ["Line of credit", "juniper", 600, false, "Oct 20", 19],
+                  ["Rent", "juniper", 3070, true, "Nov 01", 31], ["Mortgage", "willow", 1839.52, false, "Nov 01", 31], ["Mortgage", "juniper", 3017.05, false, "Nov 01", 31]];
+  var homeEvents = [["Sep 26, 2026", "willow", "Task done", "Dryer vent cleaned", 0], ["Aug 19, 2026", "juniper", "Repair", "Unit A faucet cartridge", 126],
+                    ["Jun 11, 2026", "willow", "Improvement", "Back-yard fence stain", 480], ["Apr 03, 2026", "juniper", "Repair", "Unit B bath fan", 164],
+                    ["Mar 22, 2026", "willow", "Task done", "Water heater anode check", 0], ["Jan 02, 2026", "juniper", "Lease", "Unit B · L. Moreau · $1,495", 0],
+                    ["Aug 01, 2025", "juniper", "Lease", "Unit A renewed · T. Vance · $1,575", 0]];
+  var values = { willow: [452000, 458200, 446900], juniper: [528000, 533400, 521700] };   // yours · Redfin · RentCast
+  var homesArchived = [];
   var tenancies = {
-    cedar: [{ tenant: "J. Parker", start: "Aug 2021", end: "Jun 2023", periods: [["Aug 2021", "Onboard", 2150], ["Jul 2022", "Renewal", 2250]] },
-            { tenant: "M. Ortiz", start: "Jul 2023", end: "Jun 2025", periods: [["Jul 2023", "Onboard", 2295], ["Jul 2024", "Renewal", 2295]] },
-            { tenant: "R. Alvarez", start: "Jul 2025", end: "Jun 2027", current: true, periods: [["Jul 2025", "Onboard", 2350], ["Jul 2026", "Renewal", 2350]] }],
-    birch: [{ tenant: "K. Brooks", start: "May 2023", end: "Apr 2024", periods: [["May 2023", "Onboard", 2100]] },
-            { tenant: "S. Nguyen", start: "May 2024", end: "Apr 2027", current: true, periods: [["May 2024", "Onboard", 2150], ["May 2025", "Renewal", 2195], ["May 2026", "Renewal", 2195]] }]
+    A: [{ tenant: "D. Hale", start: "Jun 2022", end: "Jul 2024", periods: [["Jun 2022", "Onboard", 1450], ["Jun 2023", "Renewal", 1500]] },
+        { tenant: "T. Vance", start: "Aug 2024", end: "Jul 2027", current: true, periods: [["Aug 2024", "Onboard", 1525], ["Aug 2025", "Renewal", 1575]] }],
+    B: [{ tenant: "R. Okafor", start: "Jun 2022", end: "Dec 2025", periods: [["Jun 2022", "Onboard", 1395], ["Jun 2023", "Renewal", 1425], ["Jun 2025", "Renewal", 1450]] },
+        { tenant: "L. Moreau", start: "Jan 2026", end: "Dec 2026", current: true, periods: [["Jan 2026", "Onboard", 1495]] }]
   };
-
 
   // ---------- Daily Tasks: one list, every area; hub counts come from it ----------
-  // [group, title, where, area, due text, days, amount, kind, hot, link]
+  // [group, title, where, area, due text, days, amount, kind, hot, link]   area: money | assets | household | identity | tax | activities
   var taskList = [
-    ["urgent", "Furnace filter", "Maple · every 3 mo", "assets", "Sep 26", -3, "", "todo", false, "#/homes"],
-    ["urgent", "Possible duplicate: Corner Bakery", "Summit ••2266 · twice on Sep 17", "money", "Sep 17", null, "$18.40", "notice", true, "#/finances/radar"],
-    ["week", "Money next 7 days", "in $4,545 · out $6,903", "money", "Oct 01", 2, "", "notice", false, "#/homes"],
-    ["week", "Rent · Cedar", "R. Alvarez · $2,350 + $60 utilities", "rentals", "Oct 02", 3, "$2,410", "todo", false, "#/rhomes"],
-    ["week", "Rent · Birch", "S. Nguyen", "rentals", "Oct 02", 3, "$2,195", "todo", false, "#/rhomes"],
-    ["week", "Iron Fitness renews", "Harbor ••5530 · monthly", "money", "Oct 03", 4, "$39.00", "notice", false, "#/finances/radar"],
-    ["week", "HOA · Cedar", "Harbor ••8124", "utilities", "Oct 05", 6, "$210.00", "todo", false, "#/hoa"],
-    ["later", "Water heater flush", "Birch", "assets", "Oct 09", 10, "", "todo", false, "#/homes"],
-    ["later", "Tire rotation", "Ioniq 5 · 4,380 mi since last", "assets", "Oct 11", 12, "", "todo", false, "#/cars"],
-    ["later", "Summit card payment", "Rewards Card ••2266", "money", "Oct 14", 15, "$1,584.44", "todo", false, "#/finances"],
-    ["later", "Clean gutters", "Maple", "assets", "Oct 15", 16, "", "todo", false, "#/homes"],
-    ["later", "Start renewal: Passport", "Jordan · expires Apr 2027", "identity", "Oct 20", 21, "", "todo", false, "#/vault"],
-    ["later", "Oil change", "Outback · ≈ 640 mi", "assets", "Oct 20", 21, "", "todo", false, "#/cars"],
-    ["later", "Sprinkler blowout", "Maple", "assets", "Oct 20", 21, "", "todo", false, "#/homes"],
-    ["later", "HVAC service", "Cedar", "assets", "Oct 28", 29, "", "todo", false, "#/homes"],
-    ["fyi", "StreamFlix price went up", "$13.99 → $15.49 · Summit ••2266", "money", "Sep 20", null, "", "notice", false, "#/finances/radar"],
-    ["fyi", "Foreign transaction fee", "Harbor ••5530", "money", "Sep 12", null, "$2.13", "notice", false, "#/finances/radar"],
-    ["fyi", "Categories tidied", "4 transactions filed like your history", "money", "Sep 28", null, "", "notice", false, "#/finances/transactions"]
+    ["urgent", "Furnace filter", "Willow · every 3 mo", "assets", "Sep 26", -5, "", "todo", false, "#/homes"],
+    ["urgent", "Possible duplicate: Maple & Rye Bakery", "Quill ••7751 · twice on Sep 17", "money", "Sep 17", null, "$18.40", "notice", true, "#/bills"],
+    ["week", "Money next 7 days", "in $3,185 · out $2,311", "money", "Oct 01", 0, "", "notice", false, "#/finances"],
+    ["week", "Trailhead Gym renews", "Tidewater ••3307 · monthly", "money", "Oct 03", 2, "$45.00", "notice", false, "#/bills"],
+    ["week", "HOA · Willow", "Larkspur ••2093", "money", "Oct 05", 4, "$240.00", "todo", false, "#/bills/hoa"],
+    ["week", "Submit HSA claim · dental", "Bright Smiles Dental · Morgan", "household", "Oct 05", 4, "$184.00", "todo", false, "#/medcol/medical"],
+    ["week", "Lakeside Power bill", "Larkspur ••2093", "money", "Oct 08", 7, "$131.10", "todo", false, "#/bills/electricity"],
+    ["later", "Visa card payment", "Visa ••3307", "money", "Oct 09", 8, "$488.52", "todo", false, "#/cards"],
+    ["later", "Smoke alarm check", "Juniper · both units", "assets", "Oct 12", 11, "", "todo", false, "#/homes"],
+    ["later", "Clean gutters", "Willow", "assets", "Oct 15", 14, "", "todo", false, "#/homes"],
+    ["later", "AP exam fee due", "Ellis · Ridgeview High", "household", "Oct 15", 14, "$98.00", "todo", false, "#/medcol"],
+    ["later", "Everyday Card payment", "Quill ••7751", "money", "Oct 18", 17, "$1,264.08", "todo", false, "#/cards"],
+    ["later", "Oil change", "CX-5 · ≈ 19 days", "assets", "Oct 20", 19, "", "todo", false, "#/cars"],
+    ["later", "Line of credit payment", "Juniper · Tidewater", "money", "Oct 20", 19, "$600.00", "todo", false, "#/loans"],
+    ["later", "Start renewal: Driver's license", "Morgan · expires Jan 2027", "identity", "Oct 31", 30, "", "todo", false, "#/vault"],
+    ["later", "Lease renewal offer · Unit B", "L. Moreau · lease ends Dec 2026", "assets", "Oct 31", 30, "", "todo", false, "#/homes"],
+    ["fyi", "StreamBox price went up", "$11.99 → $12.99 · Quill ••7751", "money", "Sep 20", null, "", "notice", false, "#/bills"],
+    ["fyi", "Paper statement fee", "Tidewater ••6618", "money", "Sep 28", null, "$2.00", "notice", false, "#/bills"],
+    ["fyi", "Categories tidied", "3 transactions filed like your history", "money", "Sep 29", null, "", "notice", false, "#/finances/transactions"]
   ];
-  var planned = [["November 2026", 6], ["December 2026", 4], ["January 2027", 5], ["February 2027", 3], ["March 2027", 7], ["April 2027", 4]];
-  var tasksDone = [["Deep clean dryer vent", "assets", "done", "09-26"], ["Sep rent · Cedar", "rentals", "done", "09-02"], ["Sep rent · Birch", "rentals", "done", "09-02"], ["Big Box Membership", "money", "seen", "09-01"]];
+  var planned = [["November 2026", 5], ["December 2026", 4], ["January 2027", 6], ["February 2027", 3], ["March 2027", 5], ["April 2027", 4]];
+  var tasksDone = [["Dryer vent cleaned", "assets", "done", "09-26"], ["Sep rent · Unit A", "assets", "done", "09-01"], ["Sep rent · Unit B", "assets", "done", "09-01"], ["Auto-invest check", "money", "seen", "09-03"]];
+  var tasks = { urgent: 0, week: 0, byArea: {} };
   tasks.urgent = taskList.filter(function (t) { return t[0] === "urgent"; }).length;
   tasks.week = taskList.filter(function (t) { return t[0] === "week"; }).length;
-  tasks.byArea = {};
   taskList.forEach(function (t) { if (t[0] === "urgent" || t[0] === "week") tasks.byArea[t[3]] = (tasks.byArea[t[3]] || 0) + 1; });
+  var renewals = [{ what: "Driver's license · Morgan", when: "in 3 mo" }, { what: "Passport · Casey", when: "in 11 mo" }];
 
-  // ---------- Utilities: 12 months per home (Oct 2025 → Sep 2026), the year before for comparison ----------
-  var MONTHS = ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"];
-  function series(list, before) { return MONTHS.map(function (m, i) { return { m: m, cost: list[i], prev: before ? Math.round(list[i] * before[i] * 100) / 100 : null }; }); }
+  // ---------- Utilities: 12 months per home (Oct 2025 -> Sep 2026), the year before for comparison ----------
+  function series(list, before) { return UM.map(function (m, i) { return { m: m, cost: list[i], prev: before ? r2(list[i] * before[i]) : null }; }); }
   var jitter = [1.04, 0.97, 1.08, 0.95, 1.02, 0.99, 1.06, 0.93, 1.01, 0.98, 1.05, 0.96];
+  var flat118 = UM.map(function () { return 118; });
   var utilityData = {
-    gas: { unit: "therms", homes: [{ key: "maple", months: series([41.20, 88.60, 146.30, 188.40, 171.10, 132.80, 96.40, 58.70, 36.20, 31.10, 48.90, 62.40], jitter), usage: [38, 81, 140, 182, 164, 126, 88, 50, 29, 24, 40, 55] }] },
-    electricity: { unit: "kWh", homes: [{ key: "maple", months: series([112.40, 118.90, 131.20, 137.60, 126.30, 114.80, 101.20, 108.60, 146.90, 211.70, 162.30, 148.15], jitter), usage: [742, 790, 880, 925, 845, 760, 668, 715, 980, 1420, 1085, 988] }] },
-    water: { unit: "kgal", homes: [{ key: "maple", months: series([78.40, 64.20, 62.10, 61.80, 61.80, 63.40, 72.60, 96.30, 118.20, 117.60, 104.90, 90.75], jitter), usage: [5.1, 3.2, 3.0, 3.0, 3.0, 3.3, 4.6, 8.2, 11.4, 11.3, 9.6, 7.8] },
-                                     { key: "birch", months: series([60.10, 52.40, 49.80, 48.90, 49.20, 50.60, 56.40, 71.30, 76.90, 74.80, 64.20, 58.20], jitter) }] },
-    hoa: { homes: [{ key: "maple", months: series([180, 180, 180, 185, 185, 185, 185, 185, 185, 185, 185, 185], [1, 1, 1, 0.973, 0.973, 0.973, 0.973, 0.973, 0.973, 0.973, 0.973, 0.973]) },
-                   { key: "cedar", months: series([205, 205, 205, 210, 210, 210, 210, 210, 210, 210, 210, 210], [1, 1, 1, 0.976, 0.976, 0.976, 0.976, 0.976, 0.976, 0.976, 0.976, 0.976]) }] }
+    gas: { unit: "therms", homes: [{ key: "willow", months: series(uGas, jitter), usage: [30, 62, 104, 134, 123, 96, 68, 41, 25, 22, 27, 34] }] },
+    electricity: { unit: "kWh", homes: [{ key: "willow", months: series(uPow, jitter), usage: [640, 672, 745, 782, 716, 651, 570, 612, 850, 1140, 990, 868] }] },
+    water: { unit: "kgal", homes: [{ key: "willow", months: series(uWat, jitter), usage: [4.4, 3.7, 3.5, 3.5, 3.5, 3.6, 4.1, 5.3, 6.4, 6.6, 6.0, 5.1] },
+                                   { key: "juniper", months: series(flat118, UM.map(function () { return 0.97; })) }] },
+    hoa: { homes: [{ key: "willow", months: series(uHoa, UM.map(function () { return 0.979; })) }] }
   };
 
   // ---------- Identity Vault: names and dates only ----------
-  var vaultDocs = [["Passport", "Jordan", "Apr 14, 2027", 197, "renew", "Start renewal by Jul 14, 2026 (9 months before)"],
-                   ["Global Entry", "Alex", "Nov 30, 2026", 62, "soon", "Renew online up to a year before"],
-                   ["Driver's license", "Alex", "Aug 09, 2027", 314, "ok", "Renew 2 months before"],
-                   ["Passport", "Maya", "Jan 22, 2028", 480, "ok", "Under 16: 5-year passport"],
-                   ["Passport", "Alex", "Jun 03, 2031", 1708, "ok", ""],
-                   ["Passport", "Theo", "Jun 18, 2029", 993, "ok", "Under 16: 5-year passport"]];
-  var vaultFolders = [["Education & Identity", [["Alex", 12], ["Jordan", 11], ["Maya", 9], ["Theo", 7], ["In this folder", 3]]],
-                      ["Visa & Travel", [["Passports (scans)", 8], ["Global Entry", 4], ["Trips", 19]]]];
+  var vaultDocs = [["Driver's license", "Morgan", "Jan 19, 2027", 110, "soon", "Renew online up to 6 months before"],
+                   ["Learner's permit", "Ellis", "Mar 02, 2027", 152, "ok", "Road test once 6 months are done"],
+                   ["Passport", "Casey", "Aug 21, 2027", 324, "ok", "Start renewal 9 months before"],
+                   ["Driver's license", "Casey", "May 06, 2028", 583, "ok", ""],
+                   ["Passport", "Morgan", "Feb 11, 2029", 863, "ok", ""],
+                   ["Passport", "Ellis", "Jun 24, 2030", 1362, "ok", "Under 16 when issued: 5-year passport"]];
+  var vaultFolders = [["Education & Identity", [["Casey", 9], ["Morgan", 8], ["Ellis", 6], ["In this folder", 2]]],
+                      ["Insurance & Records", [["Home insurance", 5], ["Vehicle", 4], ["Medical cards", 3]]]];
 
-  // ---------- Audit: filed returns vs the household's data ----------
-  var audit = { years: [2025, 2024, 2023, 2022, 2021], check: { 2025: 1, 2024: 0, 2023: 2, 2022: 0, 2021: 0 },
-    summary: [["Wages (W-2 box 1)", 186420, 186420], ["Federal tax withheld", 24310, 24310], ["Interest · US accounts", 1842, 1835], ["Dividends · US accounts", 2210, 2210],
-              ["Rentals, tax view (incl. depreciation)", -4120, -4120]],
-    rentals: [{ name: "Cedar", rent: 28200, lines: [["3", "Rents received", 28200], ["7", "Cleaning & maintenance", 1840], ["9", "Insurance", 1120], ["12", "Mortgage interest", 16010], ["16", "Taxes", 2560], ["17", "Utilities", 0], ["18", "Depreciation", 12910], ["19", "HOA", 2520]] },
-               { name: "Birch", rent: 26340, lines: [["3", "Rents received", 26340], ["7", "Cleaning & maintenance", 2210], ["9", "Insurance", 1040], ["12", "Mortgage interest", 13900], ["16", "Taxes", 2300], ["17", "Water & sewer", 700], ["18", "Depreciation", 12650], ["19", "HOA", 0]] }],
-    filed: [["ok", "Wages", "1040", "1a", 186420, 186420, ""], ["small", "Taxable interest", "1040", "2b", 1842, 1835, "$7 from a savings account closed in December"],
-            ["ok", "Ordinary dividends", "1040", "3b", 2210, 2210, ""], ["ok", "Rental real estate", "Sch 1", "5", -4120, -4120, ""],
-            ["check", "Charitable gifts", "Sch A", "12", 3400, 2650, "The app sees $2,650 in gifts; $750 more on the return (cash gifts, or a gift from an account the app doesn't have?)"],
-            ["ok", "Mortgage interest (home)", "Sch A", "8a", 20480, 20480, ""], ["ok", "Federal tax withheld", "1040", "25a", 24310, 24310, ""],
-            ["explained", "Refund", "1040", "35a", 1964, 1964, "Arrived Mar 12 into Northwind ••4417"]] };
+  // ---------- Tax & Audit: filed returns vs the household's data ----------
+  var audit = { years: [2025, 2024, 2023, 2022, 2021], check: { 2025: 1, 2024: 0, 2023: 1, 2022: 0, 2021: 0 },
+    summary: [["Wages (W-2 box 1)", 171340, 171340], ["Federal tax withheld", 19880, 19880], ["Interest · US accounts", 598, 612], ["Dividends · US accounts", 1384, 1384],
+              ["Juniper rental, tax view (incl. depreciation)", -2610, -2610]],
+    rentals: [{ name: "Juniper", rent: 36780, lines: [["3", "Rents received", 36780], ["7", "Cleaning & maintenance", 1180], ["9", "Insurance", 1410], ["12", "Mortgage interest", 22640], ["16", "Taxes", 4980], ["17", "Utilities (water & sewer)", 1416], ["18", "Depreciation", 7400]] }],
+    filed: [["ok", "Wages", "1040", "1a", 171340, 171340, ""], ["small", "Taxable interest", "1040", "2b", 598, 612, "$14 from a savings account's last statement of the year"],
+            ["ok", "Ordinary dividends", "1040", "3b", 1384, 1384, ""], ["ok", "Rental real estate", "Sch 1", "5", -2610, -2610, ""],
+            ["check", "Charitable gifts", "Sch A", "12", 1900, 1425, "The app sees $1,425 in gifts; $475 more on the return (cash gifts, or a gift from an account the app doesn't have?)"],
+            ["ok", "Mortgage interest (Willow)", "Sch A", "8a", 9180, 9180, ""], ["ok", "Federal tax withheld", "1040", "25a", 19880, 19880, ""],
+            ["explained", "Refund", "1040", "35a", 1342, 1342, "Arrived Mar 9 into Larkspur ••2093"]] };
 
   // ---------- Settings ----------
   var dailyRun = [["Bank feed", "ok"], ["Car odometer (1 call)", "ok"], ["Home values", "ok"], ["Tire swap plan", "ok"], ["Statement emails", "ok"], ["Categories check", "ok"], ["Daily Tasks", "ok"], ["Morning summary", "ok"], ["Backup", "ok"]];
 
-  return { people: people, banks: banks, accounts: accounts, homes: homes, cars: cars, utilities: utilities, rentalProfit: rentalProfit,
+  return { today: today, people: people, banks: banks, accounts: accounts, homes: homes, cars: cars, utilities: utilities, rentalProfit: rentalProfit,
            carx: carx, carEvents: carEvents, swap: swap, carsArchived: carsArchived, homex: homex, upcoming: upcoming, homeEvents: homeEvents,
            values: values, homesArchived: homesArchived, tenancies: tenancies,
            taskList: taskList, planned: planned, tasksDone: tasksDone, utilityData: utilityData, vaultDocs: vaultDocs, vaultFolders: vaultFolders, audit: audit, dailyRun: dailyRun,
-           tasks: tasks, renewals: renewals, totals: totals, today: today, cats: cats, tx: tx, subs: subs, bills: bills,
-           alerts: alerts, rentals: rentals, trend: trend };
+           tasks: tasks, renewals: renewals, totals: totals, cats: cats, tx: tx, subs: subs, bills: bills,
+           alerts: alerts, rentals: rentals, trend: trend, months: months };
 })();

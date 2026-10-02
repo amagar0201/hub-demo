@@ -24,15 +24,39 @@ window.UI = (function () {
   function bankOf(a) { return D.banks[a.bank]; }
   function isCard(a) { return a.type === "card"; }
 
-  // one transaction = one line: date · description · category · bank ••ending · amount (· balance) ›
+  // ---- pictures (mirror of the real app's look helpers; the demo has no real logos, so a bank is a coloured letter tile) ----
+  var GLYPH = { "Groceries": "cart", "Dining": "fork", "Fuel": "fuel", "Shopping": "bag", "Family": "people", "Education": "cap", "Utilities": "bolt",
+    "Mortgage": "house", "HOA": "house", "Subscriptions": "star", "Insurance": "shield", "Phone & internet": "phone", "Health": "heart", "Salary": "pay",
+    "Rent": "key", "Interest": "percent", "Car loan": "car", "Line of credit": "swap", "Savings & investing": "nest", "Fees": "receipt", "Transfer": "swap", "Travel": "plane" };
+  function caticon(cat, title) {
+    var g = GLYPH[cat] || "dots", col = D.cats[cat] || "#8E9490";
+    return '<span class="ci" style="--cc:' + col + '" title="' + esc(title || cat || "") + '"><svg aria-hidden="true"><use href="#' + g + '"/></svg></span>';
+  }
+  function banklogo(key, title) {
+    var b = D.banks[key]; if (!b) return "";
+    return '<span class="bl blt" style="--bc:' + b.color + '" title="' + esc(title || b.name) + '">' + esc(b.short.slice(0, 2).toUpperCase()) + '</span>';
+  }
+  function icon(name) { return '<svg aria-hidden="true"><use href="#' + name + '"/></svg>'; }
+  // a short readable merchant name: drops reference numbers / store numbers, title-cases shouting text
+  function merchant(desc) {
+    var s = String(desc || "").replace(/\s*#\s*\d+.*$/, "").replace(/\s*\*\w*\d\w*.*$/, "").replace(/(\s+\S*\d{4,}\S*)+\s*$/, "").trim();
+    if (s && s === s.toUpperCase()) s = s.toLowerCase().replace(/(^|\s)(\S)/g, function (m, a, b) { return a + b.toUpperCase(); });
+    return s || String(desc || "");
+  }
+
+  // one transaction: one line on a computer, two lines on a phone (phone.css) - category picture, merchant, bank logo + card,
+  // someone else's name in blue, amount with Pending / date under it, optional running balance
   function txrow(t, showDate, run) {
-    var a = ACCT[t.acct], ac = isCard(a) ? CARD : BANK, xfer = t.cat === "Transfer", pos = t.amount > 0 && !xfer;
-    return '<a class="frow f1' + (pos ? " fin" : "") + '" href="#/finances/transactions" style="--ac:' + ac + '">' +
+    var a = ACCT[t.acct], ac = isCard(a) ? CARD : BANK, xfer = t.cat === "Transfer", pos = t.amount > 0 && !xfer, b = bankOf(a);
+    var who = t.who && t.who !== "Casey" ? t.who : "";
+    return '<a class="frow f1 txr' + (pos ? " fin" : "") + '" href="#/finances/transactions" style="--ac:' + ac + '">' +
       (showDate ? '<span class="fd">' + md(t.date) + '</span>' : "") +
-      '<span class="fdesc">' + esc(t.desc) + '</span>' +
+      caticon(t.cat, xfer ? "Transfer" : t.cat) +
+      '<span class="fmain"><span class="fdesc" title="' + esc(t.desc) + '">' + (t.pending ? '<span class="fpend">P</span> ' : "") + esc(merchant(t.desc)) + '</span>' +
+      '<span class="fsub' + (who ? " who" : "") + '">' + banklogo(a.bank) + '<span>' + b.short + ' ••' + a.end + (who ? " · " + who : "") + '</span></span></span>' +
       '<span class="fcatp" style="--cc:' + (D.cats[t.cat] || "#8A938C") + '">' + (xfer ? "transfer" : t.cat) + '</span>' +
-      '<span class="fwho"><i style="background:' + bankOf(a).color + '"></i><span class="fwb">' + bankOf(a).short + '</span> ••' + a.end + '</span>' +
-      '<b class="famt' + (pos ? " pos" : "") + '">' + (t.amount > 0 ? cur(t.amount, true) : cur(-t.amount)) + '</b>' +
+      '<span class="fwho">' + banklogo(a.bank) + '<span class="fwb">' + b.short + '</span> ••' + a.end + '</span>' +
+      '<span class="fval"><b class="famt' + (pos ? " pos" : "") + '">' + (t.amount > 0 ? cur(t.amount, true) : cur(-t.amount)) + '</b><small class="fst">' + (t.pending ? "Pending" : md(t.date)) + '</small></span>' +
       (run ? '<span class="frun">' + cur(t.run) + '</span>' : "") + '<span class="fchev">›</span></a>';
   }
   function runhead() { return '<div class="frow f1 fhead"><span class="fdesc"></span><span class="famt">Amount</span><span class="frun">Balance</span><span class="fchev"></span></div>'; }
@@ -106,5 +130,5 @@ window.UI = (function () {
   function enhance(root) { levels(root); swipes(root); }
 
   return { cur: cur, cur0: cur0, km: km, pct: pct, esc: esc, md: md, acct: acct, bankOf: bankOf, isCard: isCard, txrow: txrow,
-           runhead: runhead, acctrow: acctrow, toast: toast, enhance: enhance, cap: cap, CARD: CARD, BANK: BANK, MON: MON };
+           runhead: runhead, caticon: caticon, banklogo: banklogo, merchant: merchant, icon: icon, acctrow: acctrow, toast: toast, enhance: enhance, cap: cap, CARD: CARD, BANK: BANK, MON: MON };
 })();
